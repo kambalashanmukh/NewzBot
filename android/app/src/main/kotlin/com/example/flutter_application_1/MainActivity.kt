@@ -1,4 +1,4 @@
-package com.example.newsbot
+package com.example.newzbot
 
 import io.flutter.embedding.android.FlutterActivity
 

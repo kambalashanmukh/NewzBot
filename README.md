@@ -1,4 +1,4 @@
-# newsbot
+# newzbot
 
 A new Flutter project.
 

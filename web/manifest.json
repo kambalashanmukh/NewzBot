@@ -1,6 +1,6 @@
 {
-    "name": "newsbot",
-    "short_name": "newsbot",
+    "name": "newzbot",
+    "short_name": "newzbot",
     "start_url": ".",
     "display": "standalone",
     "background_color": "#0175C2",
