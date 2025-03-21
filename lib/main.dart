@@ -51,7 +51,7 @@ class MyAppState extends State<MyApp> with TickerProviderStateMixin {
       theme: isDarkTheme ? darkTheme : lightTheme,
       home: Scaffold(
         appBar: AppBar(
-          title: Text('newsbot'),
+          title: Text('NewzBot'),
           centerTitle: true,
           bottom: TabBar(
             controller: tabController,
@@ -118,8 +118,17 @@ class MyAppState extends State<MyApp> with TickerProviderStateMixin {
             decoration: BoxDecoration(
               color: isDarkTheme ? Colors.blueGrey : Colors.blue,
             ),
-            child: Text('App Version 1.0.0',
-                style: TextStyle(color: Colors.white)),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text('Version 0.0.1',
+                    style: TextStyle(color: Colors.white, fontSize: 10)),
+                    Spacer(),
+                    Icon(Icons.account_circle, size: 60, color: Colors.white),
+                Text('Hello User!',
+                    style: TextStyle(color: Colors.white, fontSize: 20)),
+              ],
+            ),
           ),
           ListTile(
             leading: Icon(Icons.person),
