@@ -1,5 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
+import 'package:http/http.dart' as http;
+import 'dart:convert';
+import 'package:intl/intl.dart';
 
 void main() => runApp(MyApp());
 
@@ -12,22 +15,55 @@ class MyApp extends StatefulWidget {
 class MyAppState extends State<MyApp> with TickerProviderStateMixin {
   bool isDarkTheme = false;
   int selectedIndex = 0;
-  int? expandedCardIndex;
   late TabController tabController;
   final List<String> categories = [
-    'For You', 'Sports', 'Entertainment', 'Technology', 'Health', 'Climate'
+    'For You', 'Sports', 'Entertainment', 'Technology', 'Health', 'Science'
   ];
+
+  final String apiKey = 'b21b107a4bb0432497f5586be3a482ce';
+  final Map<String, Future<List<Article>>> categoryFutures = {};
 
   @override
   void initState() {
     super.initState();
     tabController = TabController(length: categories.length, vsync: this);
+    for (var category in categories) {
+      categoryFutures[category] = fetchArticles(category);
+    }
   }
 
-  @override
-  void dispose() {
-    tabController.dispose();
-    super.dispose();
+  Future<List<Article>> fetchArticles(String category) async {
+    String apiCategory = category == 'For You' 
+        ? 'general' 
+        : category == 'Science' 
+            ? 'science' 
+            : category.toLowerCase();
+    
+    final response = await http.get(Uri.parse(
+      'https://newsapi.org/v2/top-headlines?country=us&category=$apiCategory&apiKey=$apiKey'
+    ));
+
+    if (response.statusCode == 200) {
+      List<Article> articles = [];
+      var jsonData = jsonDecode(response.body);
+      for (var item in jsonData['articles']) {
+        if (item['title'] != null && item['description'] != null) {
+          articles.add(Article(
+            title: item['title'],
+            description: item['description'],
+            content: item['content'] ?? 'No content available',
+            urlToImage: item['urlToImage'] ?? '',
+            publishedAt: DateTime.parse(item['publishedAt']),
+            author: item['author'] ?? 'Unknown',
+            source: item['source']['name'] ?? 'Unknown source',
+            url: item['url'] ?? '',
+          ));
+        }
+      }
+      return articles;
+    } else {
+      throw Exception('Failed to load articles');
+    }
   }
 
   ThemeData get lightTheme => ThemeData(
@@ -64,7 +100,12 @@ class MyAppState extends State<MyApp> with TickerProviderStateMixin {
               onPressed: () {},
             ),
             IconButton(
-              icon: Image.asset('lib/Icons/bot.png', width: 25, height: 25, color: isDarkTheme ?Color.fromARGB(226, 222, 221, 221) : const Color.fromARGB(223, 46, 46, 46)),
+              icon: Image.asset('lib/Icons/bot.png', 
+                width: 25, 
+                height: 25, 
+                color: isDarkTheme 
+                    ? Color.fromARGB(226, 222, 221, 221) 
+                    : const Color.fromARGB(223, 46, 46, 46)),
               onPressed: () {},
             )
           ],
@@ -73,42 +114,42 @@ class MyAppState extends State<MyApp> with TickerProviderStateMixin {
         body: TabBarView(
           controller: tabController,
           children: categories.map((category) => 
-            SingleChildScrollView(
-              child: Column(
-                children: List.generate(10, (index) => NewsCard(
-                  category: category,
-                  index: index,
-                  expandedIndex: expandedCardIndex,
-                  onExpand: (index) => setState(() => expandedCardIndex = index),
-                )),
+            RefreshIndicator(
+              onRefresh: () async {
+                final newFuture = fetchArticles(category);
+                setState(() => categoryFutures[category] = newFuture);
+                await newFuture;
+              },
+              child: FutureBuilder<List<Article>>(
+                future: categoryFutures[category],
+                builder: (context, snapshot) {
+                  if (snapshot.connectionState == ConnectionState.waiting) {
+                    return Center(child: CircularProgressIndicator());
+                  } else if (snapshot.hasError) {
+                    return Center(child: Text('Error loading articles'));
+                  } else if (!snapshot.hasData || snapshot.data!.isEmpty) {
+                    return Center(child: Text('No articles found'));
+                  }
+                  return ListView.builder(
+                    itemCount: snapshot.data!.length,
+                    itemBuilder: (context, index) {
+                      final article = snapshot.data![index];
+                      return NewsCard(
+                        article: article,
+                        onTap: () {
+                          Navigator.push(
+                            context,
+                            MaterialPageRoute(
+                              builder: (context) => ArticleDetailPage(article: article),
+                          ));
+                        },
+                      );
+                    },
+                  );
+                },
               ),
             )).toList(),
         ),
-        /*bottomNavigationBar: NavigationBar(
-          selectedIndex: selectedIndex,
-          onDestinationSelected: (int index) {
-            setState(() {
-              selectedIndex = index;
-            });
-          },
-          destinations: const [
-            NavigationDestination(
-              icon: Icon(Icons.home_outlined),
-              selectedIcon: Icon(Icons.home),
-              label: 'Home',
-            ),
-            NavigationDestination(
-              icon: Icon(Icons.assistant_outlined),
-              selectedIcon: Icon(Icons.assistant_rounded),
-              label: 'ChatBot',
-            ),
-            NavigationDestination(
-              icon: Icon(Icons.star_border),
-              selectedIcon: Icon(Icons.star),
-              label: 'Starred',
-            ),
-          ],
-        ),*/
       ),
     );
   }
@@ -127,8 +168,8 @@ class MyAppState extends State<MyApp> with TickerProviderStateMixin {
               children: [
                 Text('Version 0.0.1',
                     style: TextStyle(color: Colors.white, fontSize: 10)),
-                    Spacer(),
-                    Icon(Icons.account_circle, size: 60, color: Colors.white),
+                Spacer(),
+                Icon(Icons.account_circle, size: 60, color: Colors.white),
                 Text('Hello User!',
                     style: TextStyle(color: Colors.white, fontSize: 20)),
               ],
@@ -177,103 +218,197 @@ class MyAppState extends State<MyApp> with TickerProviderStateMixin {
   }
 }
 
-class NewsCard extends StatefulWidget {
-  final String category;
-  final int index;
-  final int? expandedIndex;
-  final Function(int?) onExpand;
+class Article {
+  final String title;
+  final String description;
+  final String content;
+  final String urlToImage;
+  final DateTime publishedAt;
+  final String author;
+  final String source;
+  final String url;
+
+  Article({
+    required this.title,
+    required this.description,
+    required this.content,
+    required this.urlToImage,
+    required this.publishedAt,
+    required this.author,
+    required this.source,
+    required this.url,
+  });
+}
+
+class NewsCard extends StatelessWidget {
+  final Article article;
+  final VoidCallback onTap;
 
   const NewsCard({
     super.key,
-    required this.category,
-    required this.index,
-    required this.expandedIndex,
-    required this.onExpand,
+    required this.article,
+    required this.onTap,
   });
 
   @override
-  NewsCardState createState() => NewsCardState();
-}
-
-class NewsCardState extends State<NewsCard> {
-  static const double collapsedHeight = 150,expandedHeight = 300,padding = 5.0,cardElevation = 4.0;
-  static const double borderRadius = 12.0,iconSize = 16.0,imageSizeCollapsed = 100.0,imageSizeExpanded = 150.0;
-  static const Duration animationDuration = Duration(milliseconds: 300), imageAnimationDuration = Duration(milliseconds: 300);
-  bool get isExpanded => widget.expandedIndex == widget.index;
-
-  @override
   Widget build(BuildContext context) {
-    return Padding(
-      padding: EdgeInsets.all(padding),
-      child: GestureDetector(
-        onTap: () {
-          widget.onExpand(isExpanded ? null : widget.index);
-        },
-        child: AnimatedContainer(
-          duration: animationDuration,
-          curve: Curves.easeInOut,
-          height: isExpanded ? expandedHeight : collapsedHeight,
-          child: Card(
-            elevation: cardElevation,
-            shape: RoundedRectangleBorder(
-              borderRadius: BorderRadius.circular(borderRadius),
-            ),
-            child: Padding(
-              padding: EdgeInsets.all(12.0),
-              child: Row(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Expanded(
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        Text('HeadLine',
-                            style: TextStyle(
-                                fontSize: 18,
-                                fontWeight: FontWeight.bold)),
-                        SizedBox(height: 8),
-                        Text('article description',
-                            style: TextStyle(color: Colors.grey.shade600)),
-                        if (isExpanded) ...[
-                          SizedBox(height: 12),
-                          Text('summarized article content ...',
-                              style: TextStyle(fontSize: 14)),
-                        ],
-                        Spacer(),
-                        Row(
-                          children: [
-                            Icon(Icons.access_time, size: iconSize),
-                            SizedBox(width: 4),
-                            Text('2h ago', style: TextStyle(fontSize: 12)),
-                          ],
-                        ),
-                      ],
+    return Card(
+      margin: EdgeInsets.all(8),
+      child: InkWell(
+        onTap: onTap,
+        child: Padding(
+          padding: EdgeInsets.all(12),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              if (article.urlToImage.isNotEmpty)
+                Container(
+                  height: 200,
+                  width: double.infinity,
+                  decoration: BoxDecoration(
+                    borderRadius: BorderRadius.circular(8),
+                    image: DecorationImage(
+                      image: NetworkImage(article.urlToImage),
+                      fit: BoxFit.cover,
                     ),
                   ),
-                  SizedBox(width: 16),
-                  AnimatedContainer(
-                    duration: imageAnimationDuration,
-                    width: isExpanded ? imageSizeExpanded : imageSizeCollapsed,
-                    height: isExpanded ? imageSizeExpanded : imageSizeCollapsed,
-                    decoration: BoxDecoration(
-                      color: Colors.red.shade100,
-                      borderRadius: BorderRadius.circular(8),
-                    ),
-                    child: Icon(Icons.image,
-                        size: isExpanded ? 60 : 40,
-                        color: Colors.red.shade600),
+                ),
+              SizedBox(height: 12),
+              Text(
+                article.title,
+                style: TextStyle(
+                  fontSize: 18,
+                  fontWeight: FontWeight.bold),
+              ),
+              SizedBox(height: 8),
+              Text(
+                article.description,
+                style: TextStyle(fontSize: 14),
+                maxLines: 3,
+                overflow: TextOverflow.ellipsis,
+              ),
+              SizedBox(height: 12),
+              Row(
+                children: [
+                  Icon(Icons.access_time, size: 16),
+                  SizedBox(width: 4),
+                  Text(
+                    timeAgo(article.publishedAt),
+                    style: TextStyle(fontSize: 12),
+                  ),
+                  Spacer(),
+                  Text(
+                    article.source,
+                    style: TextStyle(fontSize: 12),
                   ),
                 ],
               ),
-            ),
+            ],
           ),
+        ),
+      ),
+    );
+  }
+
+  String timeAgo(DateTime date) {
+    final now = DateTime.now();
+    final difference = now.difference(date);
+    
+    if (difference.inDays > 30) {
+      return DateFormat('MMM d, y').format(date);
+    } else if (difference.inHours > 0) {
+      return '${difference.inHours}h ago';
+    } else if (difference.inMinutes > 0) {
+      return '${difference.inMinutes}m ago';
+    } else {
+      return 'Just now';
+    }
+  }
+}
+
+class ArticleDetailPage extends StatelessWidget {
+  final Article article;
+
+  const ArticleDetailPage({super.key, required this.article});
+
+  @override
+  Widget build(BuildContext context) {
+    return Scaffold(
+      appBar: AppBar(
+        title: Text('Article Details'),
+      ),
+      body: SingleChildScrollView(
+        padding: EdgeInsets.all(16),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            if (article.urlToImage.isNotEmpty)
+              Container(
+                height: 250,
+                width: double.infinity,
+                decoration: BoxDecoration(
+                  borderRadius: BorderRadius.circular(8),
+                  image: DecorationImage(
+                    image: NetworkImage(article.urlToImage),
+                    fit: BoxFit.cover,
+                  ),
+                ),
+              ),
+            SizedBox(height: 16),
+            Text(
+              article.title,
+              style: TextStyle(
+                fontSize: 24,
+                fontWeight: FontWeight.bold),
+            ),
+            SizedBox(height: 8),
+            Row(
+              children: [
+                Icon(Icons.person, size: 16),
+                SizedBox(width: 4),
+                Text(
+                  article.author,
+                  style: TextStyle(fontSize: 14),
+                ),
+                Spacer(),
+                Icon(Icons.source, size: 16),
+                SizedBox(width: 4),
+                Text(
+                  article.source,
+                  style: TextStyle(fontSize: 14),
+                ),
+              ],
+            ),
+            SizedBox(height: 8),
+            Row(
+              children: [
+                Icon(Icons.access_time, size: 16),
+                SizedBox(width: 4),
+                Text(
+                  DateFormat('MMM d, y - h:mm a').format(article.publishedAt),
+                  style: TextStyle(fontSize: 14),
+                ),
+              ],
+            ),
+            SizedBox(height: 16),
+            Text(
+              article.content,
+              style: TextStyle(fontSize: 16),
+            ),
+            SizedBox(height: 20),
+            ElevatedButton(
+              onPressed: () {
+                // Implement functionality to open the full article in browser
+              },
+              child: Text('Read Full Article'),
+            ),
+          ],
         ),
       ),
     );
   }
 }
 
-// dark and light theme switch
 class _ThemeSwitch extends StatelessWidget {
   final bool value;
   final ValueChanged<bool> onChanged;
@@ -281,34 +416,25 @@ class _ThemeSwitch extends StatelessWidget {
     required this.value,
     required this.onChanged,
   });
-
-  static const double switchWidth = 60,switchHeight = 30,switchBorderRadius = 15, circleSize = 30;
-  static const Duration switchAnimationDuration = Duration(milliseconds: 300),circleAnimationDuration = Duration(milliseconds: 50);
-
-  // toggle button
   @override
   Widget build(BuildContext context) {
     return GestureDetector(
       onTap: () => onChanged(!value),
-      child: AnimatedContainer(
-        duration: switchAnimationDuration,
-        curve: Curves.easeInOut,
-        width: switchWidth,
-        height: switchHeight,
+      child: Container(
+        width: 60,
+        height: 30,
         decoration: BoxDecoration(
-          borderRadius: BorderRadius.circular(switchBorderRadius),
+          borderRadius: BorderRadius.circular(15),
           color: value ? Colors.grey[800] : Colors.grey[300],
         ),
         child: Stack(
           children: [
-            AnimatedPositioned(
-              duration: circleAnimationDuration,
-              curve: Curves.easeInOut,
-              left: value ? switchWidth / 2 : 0,
-              right: value ? 0 : switchWidth / 2,
+            Positioned(
+              left: value ? 30 : 0,
+              right: value ? 0 : 30,
               child: Container(
-                width: circleSize,
-                height: circleSize,
+                width: 30,
+                height: 30,
                 decoration: BoxDecoration(
                   color: value ? Colors.blueGrey : Colors.yellow,
                   shape: BoxShape.circle,
