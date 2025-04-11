@@ -64,7 +64,7 @@ class MyAppState extends State<MyApp> with TickerProviderStateMixin {
               onPressed: () {},
             ),
             IconButton(
-              icon: Image.asset('lib/Icons/bot.png', width: 25, height: 25, color: const Color.fromARGB(222, 43, 43, 43),),
+              icon: Image.asset('lib/Icons/bot.png', width: 25, height: 25, color: isDarkTheme ?Color.fromARGB(226, 222, 221, 221) : const Color.fromARGB(223, 46, 46, 46)),
               onPressed: () {},
             )
           ],
