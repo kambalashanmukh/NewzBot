@@ -63,6 +63,10 @@ class MyAppState extends State<MyApp> with TickerProviderStateMixin {
               icon: Icon(Icons.search),
               onPressed: () {},
             ),
+            IconButton(
+              icon: Image.asset('lib/Icons/bot.png', width: 25, height: 25, color: const Color.fromARGB(222, 43, 43, 43),),
+              onPressed: () {},
+            )
           ],
         ),
         drawer: buildDrawer(context),
@@ -80,7 +84,7 @@ class MyAppState extends State<MyApp> with TickerProviderStateMixin {
               ),
             )).toList(),
         ),
-        bottomNavigationBar: NavigationBar(
+        /*bottomNavigationBar: NavigationBar(
           selectedIndex: selectedIndex,
           onDestinationSelected: (int index) {
             setState(() {
@@ -104,7 +108,7 @@ class MyAppState extends State<MyApp> with TickerProviderStateMixin {
               label: 'Starred',
             ),
           ],
-        ),
+        ),*/
       ),
     );
   }
@@ -133,6 +137,16 @@ class MyAppState extends State<MyApp> with TickerProviderStateMixin {
           ListTile(
             leading: Icon(Icons.person),
             title: Text('Account'),
+            onTap: () => Navigator.pop(context),
+          ),
+          ListTile(
+            leading: Icon(Icons.newspaper),
+            title: Text('News'),
+            onTap: () => Navigator.pop(context),
+          ),
+          ListTile(
+            leading: Icon(Icons.stacked_line_chart_outlined),
+            title: Text('Market'),
             onTap: () => Navigator.pop(context),
           ),
           ListTile(
