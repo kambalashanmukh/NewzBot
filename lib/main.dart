@@ -15,7 +15,7 @@ class MyAppState extends State<MyApp> with TickerProviderStateMixin {
   int? expandedCardIndex;
   late TabController tabController;
   final List<String> categories = [
-    'For You', 'Sports', 'Entertainment', 'Technology', 'Health', 'Climate'
+    'For You', 'Sports', 'Entertainment', 'Technology', 'Health', 'Climate','stocks'
   ];
 
   @override
