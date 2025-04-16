@@ -16,7 +16,6 @@ class MyApp extends StatefulWidget {
 
 class MyAppState extends State<MyApp> with TickerProviderStateMixin {
   bool isDarkTheme = false;
-  int selectedIndex = 0;
   late TabController tabController;
   final List<String> categories = [
     'For You', 'Sports', 'Entertainment', 'Technology', 'Health', 'Science'
@@ -29,6 +28,27 @@ class MyAppState extends State<MyApp> with TickerProviderStateMixin {
   void initState() {
     super.initState();
     tabController = TabController(length: categories.length, vsync: this);
+    tabController.addListener(_handleTabSelection);
+    _loadInitialData();
+  }
+
+  @override
+  void dispose() {
+    tabController.removeListener(_handleTabSelection);
+    tabController.dispose();
+    super.dispose();
+  }
+
+  void _handleTabSelection() {
+    if (tabController.indexIsChanging) {
+      final currentCategory = categories[tabController.index];
+      setState(() {
+        categoryFutures[currentCategory] = fetchArticles(currentCategory);
+      });
+    }
+  }
+
+  void _loadInitialData() {
     for (var category in categories) {
       categoryFutures[category] = fetchArticles(category);
     }
@@ -116,41 +136,35 @@ class MyAppState extends State<MyApp> with TickerProviderStateMixin {
         body: TabBarView(
           controller: tabController,
           children: categories.map((category) => 
-            RefreshIndicator(
-              onRefresh: () async {
-                final newFuture = fetchArticles(category);
-                setState(() => categoryFutures[category] = newFuture);
-                await newFuture;
+            FutureBuilder<List<Article>>(
+              future: categoryFutures[category],
+              builder: (context, snapshot) {
+                if (snapshot.connectionState == ConnectionState.waiting) {
+                  return Center(child: CircularProgressIndicator());
+                } else if (snapshot.hasError) {
+                  return Center(child: Text('Error loading articles'));
+                } else if (!snapshot.hasData || snapshot.data!.isEmpty) {
+                  return Center(child: Text('No articles found'));
+                }
+                return ListView.builder(
+                  itemCount: snapshot.data!.length,
+                  itemBuilder: (context, index) {
+                    final article = snapshot.data![index];
+                    return NewsCard(
+                      article: article,
+                      onTap: () {
+                        Navigator.push(
+                          context,
+                          MaterialPageRoute(
+                            builder: (context) => ArticleDetailPage(article: article),
+                        ));
+                      },
+                    );
+                  },
+                );
               },
-              child: FutureBuilder<List<Article>>(
-                future: categoryFutures[category],
-                builder: (context, snapshot) {
-                  if (snapshot.connectionState == ConnectionState.waiting) {
-                    return Center(child: CircularProgressIndicator());
-                  } else if (snapshot.hasError) {
-                    return Center(child: Text('Error loading articles'));
-                  } else if (!snapshot.hasData || snapshot.data!.isEmpty) {
-                    return Center(child: Text('No articles found'));
-                  }
-                  return ListView.builder(
-                    itemCount: snapshot.data!.length,
-                    itemBuilder: (context, index) {
-                      final article = snapshot.data![index];
-                      return NewsCard(
-                        article: article,
-                        onTap: () {
-                          Navigator.push(
-                            context,
-                            MaterialPageRoute(
-                              builder: (context) => ArticleDetailPage(article: article),
-                          ));
-                        },
-                      );
-                    },
-                  );
-                },
-              ),
-            )).toList(),
+            ),
+          ).toList(),
         ),
       ),
     );
@@ -219,7 +233,6 @@ class MyAppState extends State<MyApp> with TickerProviderStateMixin {
     );
   }
 }
-
 class Article {
   final String title;
   final String description;
