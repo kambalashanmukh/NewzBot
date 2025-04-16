@@ -3,6 +3,8 @@ import 'package:flutter/services.dart';
 import 'package:http/http.dart' as http;
 import 'dart:convert';
 import 'package:intl/intl.dart';
+import 'package:webview_flutter/webview_flutter.dart';
+import 'package:webview_flutter_android/webview_flutter_android.dart';
 
 void main() => runApp(MyApp());
 
@@ -398,12 +400,98 @@ class ArticleDetailPage extends StatelessWidget {
             SizedBox(height: 20),
             ElevatedButton(
               onPressed: () {
-                // Implement functionality to open the full article in browser
+                Navigator.push(
+                  context,
+                  MaterialPageRoute(
+                    builder: (context) => ArticleWebView(url: article.url),
+                  ),
+                );
               },
               child: Text('Read Full Article'),
             ),
           ],
         ),
+      ),
+    );
+  }
+}
+
+class ArticleWebView extends StatefulWidget {
+  final String url;
+
+  const ArticleWebView({super.key, required this.url});
+
+  @override
+  State<ArticleWebView> createState() => _ArticleWebViewState();
+}
+
+class _ArticleWebViewState extends State<ArticleWebView> {
+  late final WebViewController _controller;
+  var loadingPercentage = 0;
+
+  @override
+  void initState() {
+    super.initState();
+    
+    final controller = WebViewController()
+      ..setJavaScriptMode(JavaScriptMode.unrestricted)
+      ..setBackgroundColor(Colors.white)
+      ..setNavigationDelegate(
+        NavigationDelegate(
+          onProgress: (int progress) {
+            setState(() {
+              loadingPercentage = progress;
+            });
+          },
+          onPageStarted: (String url) {
+            setState(() {
+              loadingPercentage = 0;
+            });
+          },
+          onPageFinished: (String url) {
+            setState(() {
+              loadingPercentage = 100;
+            });
+          },
+          onWebResourceError: (WebResourceError error) {},
+          onNavigationRequest: (NavigationRequest request) {
+            return NavigationDecision.navigate;
+          },
+        ),
+      )
+      ..loadRequest(Uri.parse(widget.url));
+
+    if (controller.platform is AndroidWebViewController) {
+      AndroidWebViewController.enableDebugging(true);
+      (controller.platform as AndroidWebViewController)
+          .setMediaPlaybackRequiresUserGesture(false);
+    }
+
+    _controller = controller;
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return Scaffold(
+      appBar: AppBar(
+        title: Text('Full Article'),
+        actions: [
+          IconButton(
+            icon: Icon(Icons.refresh),
+            onPressed: () => _controller.reload(),
+          ),
+        ],
+      ),
+      body: Stack(
+        children: [
+          WebViewWidget(controller: _controller),
+          if (loadingPercentage < 100)
+            LinearProgressIndicator(
+              value: loadingPercentage / 100.0,
+              backgroundColor: Colors.white,
+              color: Colors.blue,
+            ),
+        ],
       ),
     );
   }
@@ -416,6 +504,7 @@ class _ThemeSwitch extends StatelessWidget {
     required this.value,
     required this.onChanged,
   });
+
   @override
   Widget build(BuildContext context) {
     return GestureDetector(
