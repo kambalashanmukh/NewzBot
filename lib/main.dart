@@ -5,6 +5,7 @@ import 'dart:convert';
 import 'package:intl/intl.dart';
 import 'package:webview_flutter/webview_flutter.dart';
 import 'package:webview_flutter_android/webview_flutter_android.dart';
+import 'chat_screen.dart';
 
 void main() => runApp(MyApp());
 
@@ -91,80 +92,85 @@ class MyAppState extends State<MyApp> with TickerProviderStateMixin {
   ThemeData get lightTheme => ThemeData(
         primarySwatch: Colors.blue,
         scaffoldBackgroundColor: Colors.white,
-        textTheme: TextTheme(
+        textTheme: const TextTheme(
           bodyLarge: TextStyle(color: Colors.black),
-        ),
-      );
+      ));
 
   ThemeData get darkTheme => ThemeData.dark().copyWith(
         scaffoldBackgroundColor: Colors.grey[900],
-        textTheme: TextTheme(
+        textTheme: const TextTheme(
           bodyLarge: TextStyle(color: Colors.white),
-        ),
-      );
+      ));
 
   @override
   Widget build(BuildContext context) {
     return MaterialApp(
       theme: isDarkTheme ? darkTheme : lightTheme,
-      home: Scaffold(
-        appBar: AppBar(
-          title: Text('NewzBot'),
-          centerTitle: true,
-          bottom: TabBar(
-            controller: tabController,
-            isScrollable: true,
-            tabs: categories.map((category) => Tab(text: category)).toList(),
+      home: Builder(
+        builder: (context) => Scaffold(
+          appBar: AppBar(
+            title: const Text('NewzBot'),
+            centerTitle: true,
+            bottom: TabBar(
+              controller: tabController,
+              isScrollable: true,
+              tabs: categories.map((category) => Tab(text: category)).toList(),
+            ),
+            actions: [
+              IconButton(
+                icon: const Icon(Icons.search),
+                onPressed: () {},
+              ),
+              IconButton(
+                icon: Image.asset('lib/Icons/bot.png', 
+                  width: 25, 
+                  height: 25, 
+                  color: isDarkTheme 
+                      ? const Color.fromARGB(226, 222, 221, 221) 
+                      : const Color.fromARGB(223, 46, 46, 46)),
+                onPressed: () async {
+                  Navigator.push(
+                    context,
+                    MaterialPageRoute(builder: (context) => const ChatScreen()),
+                  );
+                },
+              )
+            ],
           ),
-          actions: [
-            IconButton(
-              icon: Icon(Icons.search),
-              onPressed: () {},
-            ),
-            IconButton(
-              icon: Image.asset('lib/Icons/bot.png', 
-                width: 25, 
-                height: 25, 
-                color: isDarkTheme 
-                    ? Color.fromARGB(226, 222, 221, 221) 
-                    : const Color.fromARGB(223, 46, 46, 46)),
-              onPressed: () {},
-            )
-          ],
-        ),
-        drawer: buildDrawer(context),
-        body: TabBarView(
-          controller: tabController,
-          children: categories.map((category) => 
-            FutureBuilder<List<Article>>(
-              future: categoryFutures[category],
-              builder: (context, snapshot) {
-                if (snapshot.connectionState == ConnectionState.waiting) {
-                  return Center(child: CircularProgressIndicator());
-                } else if (snapshot.hasError) {
-                  return Center(child: Text('Error loading articles'));
-                } else if (!snapshot.hasData || snapshot.data!.isEmpty) {
-                  return Center(child: Text('No articles found'));
-                }
-                return ListView.builder(
-                  itemCount: snapshot.data!.length,
-                  itemBuilder: (context, index) {
-                    final article = snapshot.data![index];
-                    return NewsCard(
-                      article: article,
-                      onTap: () {
-                        Navigator.push(
-                          context,
-                          MaterialPageRoute(
-                            builder: (context) => ArticleDetailPage(article: article),
-                        ));
-                      },
-                    );
-                  },
-                );
-              },
-            ),
-          ).toList(),
+          drawer: buildDrawer(context),
+          body: TabBarView(
+            controller: tabController,
+            children: categories.map((category) => 
+              FutureBuilder<List<Article>>(
+                future: categoryFutures[category],
+                builder: (context, snapshot) {
+                  if (snapshot.connectionState == ConnectionState.waiting) {
+                    return const Center(child: CircularProgressIndicator());
+                  } else if (snapshot.hasError) {
+                    return const Center(child: Text('Error loading articles'));
+                  } else if (!snapshot.hasData || snapshot.data!.isEmpty) {
+                    return const Center(child: Text('No articles found'));
+                  }
+                  return ListView.builder(
+                    itemCount: snapshot.data!.length,
+                    itemBuilder: (context, index) {
+                      final article = snapshot.data![index];
+                      return NewsCard(
+                        article: article,
+                        onTap: () {
+                          Navigator.push(
+                            context,
+                            MaterialPageRoute(
+                              builder: (context) => ArticleDetailPage(article: article),
+                          ));
+                        },
+                      );
+                    },
+                  );
+                },
+              ),
+            ).toList(),
+          ),
         ),
       ),
     );
@@ -182,38 +188,38 @@ class MyAppState extends State<MyApp> with TickerProviderStateMixin {
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                Text('Version 0.0.1',
+                const Text('Version 0.0.1',
                     style: TextStyle(color: Colors.white, fontSize: 10)),
-                Spacer(),
-                Icon(Icons.account_circle, size: 60, color: Colors.white),
-                Text('Hello User!',
+                const Spacer(),
+                const Icon(Icons.account_circle, size: 60, color: Colors.white),
+                const Text('Hello User!',
                     style: TextStyle(color: Colors.white, fontSize: 20)),
               ],
             ),
           ),
           ListTile(
-            leading: Icon(Icons.person),
-            title: Text('Account'),
+            leading: const Icon(Icons.person),
+            title: const Text('Account'),
             onTap: () => Navigator.pop(context),
           ),
           ListTile(
-            leading: Icon(Icons.newspaper),
-            title: Text('News'),
+            leading: const Icon(Icons.newspaper),
+            title: const Text('News'),
             onTap: () => Navigator.pop(context),
           ),
           ListTile(
-            leading: Icon(Icons.stacked_line_chart_outlined),
-            title: Text('Market'),
+            leading: const Icon(Icons.stacked_line_chart_outlined),
+            title: const Text('Market'),
             onTap: () => Navigator.pop(context),
           ),
           ListTile(
-            leading: Icon(Icons.download),
-            title: Text('Downloads'),
+            leading: const Icon(Icons.download),
+            title: const Text('Downloads'),
             onTap: () => Navigator.pop(context),
           ),
           ListTile(
-            leading: Icon(Icons.brightness_medium),
-            title: Text('App Theme'),
+            leading: const Icon(Icons.brightness_medium),
+            title: const Text('App Theme'),
             trailing: _ThemeSwitch(
               value: isDarkTheme,
               onChanged: (value) {
@@ -224,8 +230,8 @@ class MyAppState extends State<MyApp> with TickerProviderStateMixin {
             ),
           ),
           ListTile(
-            leading: Icon(Icons.exit_to_app),
-            title: Text('Exit'),
+            leading: const Icon(Icons.exit_to_app),
+            title: const Text('Exit'),
             onTap: () => SystemNavigator.pop(),
           ),
         ],
@@ -233,6 +239,7 @@ class MyAppState extends State<MyApp> with TickerProviderStateMixin {
     );
   }
 }
+
 class Article {
   final String title;
   final String description;
@@ -268,11 +275,11 @@ class NewsCard extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Card(
-      margin: EdgeInsets.all(8),
+      margin: const EdgeInsets.all(8),
       child: InkWell(
         onTap: onTap,
         child: Padding(
-          padding: EdgeInsets.all(12),
+          padding: const EdgeInsets.all(12),
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
@@ -288,33 +295,33 @@ class NewsCard extends StatelessWidget {
                     ),
                   ),
                 ),
-              SizedBox(height: 12),
+              const SizedBox(height: 12),
               Text(
                 article.title,
-                style: TextStyle(
+                style: const TextStyle(
                   fontSize: 18,
                   fontWeight: FontWeight.bold),
               ),
-              SizedBox(height: 8),
+              const SizedBox(height: 8),
               Text(
                 article.description,
-                style: TextStyle(fontSize: 14),
+                style: const TextStyle(fontSize: 14),
                 maxLines: 3,
                 overflow: TextOverflow.ellipsis,
               ),
-              SizedBox(height: 12),
+              const SizedBox(height: 12),
               Row(
                 children: [
-                  Icon(Icons.access_time, size: 16),
-                  SizedBox(width: 4),
+                  const Icon(Icons.access_time, size: 16),
+                  const SizedBox(width: 4),
                   Text(
                     timeAgo(article.publishedAt),
-                    style: TextStyle(fontSize: 12),
+                    style: const TextStyle(fontSize: 12),
                   ),
-                  Spacer(),
+                  const Spacer(),
                   Text(
                     article.source,
-                    style: TextStyle(fontSize: 12),
+                    style: const TextStyle(fontSize: 12),
                   ),
                 ],
               ),
@@ -350,10 +357,10 @@ class ArticleDetailPage extends StatelessWidget {
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
-        title: Text('Article Details'),
+        title: const Text('Article Details'),
       ),
       body: SingleChildScrollView(
-        padding: EdgeInsets.all(16),
+        padding: const EdgeInsets.all(16),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
@@ -369,48 +376,48 @@ class ArticleDetailPage extends StatelessWidget {
                   ),
                 ),
               ),
-            SizedBox(height: 16),
+            const SizedBox(height: 16),
             Text(
               article.title,
-              style: TextStyle(
+              style: const TextStyle(
                 fontSize: 24,
                 fontWeight: FontWeight.bold),
             ),
-            SizedBox(height: 8),
+            const SizedBox(height: 8),
             Row(
               children: [
-                Icon(Icons.person, size: 16),
-                SizedBox(width: 4),
+                const Icon(Icons.person, size: 16),
+                const SizedBox(width: 4),
                 Text(
                   article.author,
-                  style: TextStyle(fontSize: 14),
+                  style: const TextStyle(fontSize: 14),
                 ),
-                Spacer(),
-                Icon(Icons.source, size: 16),
-                SizedBox(width: 4),
+                const Spacer(),
+                const Icon(Icons.source, size: 16),
+                const SizedBox(width: 4),
                 Text(
                   article.source,
-                  style: TextStyle(fontSize: 14),
+                  style: const TextStyle(fontSize: 14),
                 ),
               ],
             ),
-            SizedBox(height: 8),
+            const SizedBox(height: 8),
             Row(
               children: [
-                Icon(Icons.access_time, size: 16),
-                SizedBox(width: 4),
+                const Icon(Icons.access_time, size: 16),
+                const SizedBox(width: 4),
                 Text(
                   DateFormat('MMM d, y - h:mm a').format(article.publishedAt),
-                  style: TextStyle(fontSize: 14),
+                  style: const TextStyle(fontSize: 14),
                 ),
               ],
             ),
-            SizedBox(height: 16),
+            const SizedBox(height: 16),
             Text(
               article.content,
-              style: TextStyle(fontSize: 16),
+              style: const TextStyle(fontSize: 16),
             ),
-            SizedBox(height: 20),
+            const SizedBox(height: 20),
             ElevatedButton(
               onPressed: () {
                 Navigator.push(
@@ -420,7 +427,7 @@ class ArticleDetailPage extends StatelessWidget {
                   ),
                 );
               },
-              child: Text('Read Full Article'),
+              child: const Text('Read Full Article'),
             ),
           ],
         ),
@@ -487,10 +494,10 @@ class _ArticleWebViewState extends State<ArticleWebView> {
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
-        title: Text('Full Article'),
+        title: const Text('Full Article'),
         actions: [
           IconButton(
-            icon: Icon(Icons.refresh),
+            icon: const Icon(Icons.refresh),
             onPressed: () => _controller.reload(),
           ),
         ],
