@@ -6,6 +6,7 @@ import 'package:intl/intl.dart';
 import 'package:webview_flutter/webview_flutter.dart';
 import 'package:webview_flutter_android/webview_flutter_android.dart';
 import 'chat_screen.dart';
+import 'market_page.dart';
 
 void main() => runApp(MyApp());
 
@@ -19,10 +20,10 @@ class MyAppState extends State<MyApp> with TickerProviderStateMixin {
   bool isDarkTheme = false;
   late TabController tabController;
   final List<String> categories = [
-    'For You', 'Sports', 'Entertainment', 'Technology', 'Health', 'Science'
+    'For You', 'Sports', 'Entertainment','business', 'Technology', 'Health', 'Science'
   ];
 
-  final String apiKey = 'b21b107a4bb0432497f5586be3a482ce';
+  final String apiKey = '51169299e55d4ef18f1f15d4b147a3c4';
   final Map<String, Future<List<Article>>> categoryFutures = {};
 
   @override
@@ -210,7 +211,13 @@ class MyAppState extends State<MyApp> with TickerProviderStateMixin {
           ListTile(
             leading: const Icon(Icons.stacked_line_chart_outlined),
             title: const Text('Market'),
-            onTap: () => Navigator.pop(context),
+            onTap: () {
+                  Navigator.pop(context);
+                  Navigator.push(
+                    context,
+                  MaterialPageRoute(builder: (context) => const MarketPage()),
+                  );
+                },
           ),
           ListTile(
             leading: const Icon(Icons.download),
@@ -348,10 +355,23 @@ class NewsCard extends StatelessWidget {
   }
 }
 
-class ArticleDetailPage extends StatelessWidget {
+class ArticleDetailPage extends StatefulWidget {
   final Article article;
 
   const ArticleDetailPage({super.key, required this.article});
+
+  @override
+  State<ArticleDetailPage> createState() => _ArticleDetailPageState();
+}
+
+class _ArticleDetailPageState extends State<ArticleDetailPage> {
+  late Future<String?> summaryFuture;
+
+  @override
+  void initState() {
+    super.initState();
+    summaryFuture = SummaryService.fetchSummary(widget.article.url);
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -364,21 +384,21 @@ class ArticleDetailPage extends StatelessWidget {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            if (article.urlToImage.isNotEmpty)
+            if (widget.article.urlToImage.isNotEmpty)
               Container(
                 height: 250,
                 width: double.infinity,
                 decoration: BoxDecoration(
                   borderRadius: BorderRadius.circular(8),
                   image: DecorationImage(
-                    image: NetworkImage(article.urlToImage),
+                    image: NetworkImage(widget.article.urlToImage),
                     fit: BoxFit.cover,
                   ),
                 ),
               ),
             const SizedBox(height: 16),
             Text(
-              article.title,
+              widget.article.title,
               style: const TextStyle(
                 fontSize: 24,
                 fontWeight: FontWeight.bold),
@@ -389,14 +409,14 @@ class ArticleDetailPage extends StatelessWidget {
                 const Icon(Icons.person, size: 16),
                 const SizedBox(width: 4),
                 Text(
-                  article.author,
+                  widget.article.author,
                   style: const TextStyle(fontSize: 14),
                 ),
                 const Spacer(),
                 const Icon(Icons.source, size: 16),
                 const SizedBox(width: 4),
                 Text(
-                  article.source,
+                  widget.article.source,
                   style: const TextStyle(fontSize: 14),
                 ),
               ],
@@ -407,23 +427,53 @@ class ArticleDetailPage extends StatelessWidget {
                 const Icon(Icons.access_time, size: 16),
                 const SizedBox(width: 4),
                 Text(
-                  DateFormat('MMM d, y - h:mm a').format(article.publishedAt),
+                  DateFormat('MMM d, y - h:mm a').format(widget.article.publishedAt),
                   style: const TextStyle(fontSize: 14),
                 ),
               ],
             ),
             const SizedBox(height: 16),
-            Text(
-              article.content,
-              style: const TextStyle(fontSize: 16),
+            FutureBuilder<String?>(
+              future: summaryFuture,
+              builder: (context, snapshot) {
+                if (snapshot.connectionState == ConnectionState.waiting) {
+                  return const Column(
+                    children: [
+                      LinearProgressIndicator(),
+                      SizedBox(height: 16),
+                      Text('Generating summary...'),
+                    ],
+                  );
+                }
+                if (snapshot.hasError) {
+                  return Text('Error: ${snapshot.error}');
+                }
+                return Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    const Text(
+                      'Summary:',
+                      style: TextStyle(
+                        fontSize: 18,
+                        fontWeight: FontWeight.bold
+                      ),
+                    ),
+                    const SizedBox(height: 8),
+                    Text(
+                      snapshot.data ?? 'No summary available',
+                      style: const TextStyle(fontSize: 16),
+                    ),
+                    const SizedBox(height: 20),
+                  ],
+                );
+              },
             ),
-            const SizedBox(height: 20),
             ElevatedButton(
               onPressed: () {
                 Navigator.push(
                   context,
                   MaterialPageRoute(
-                    builder: (context) => ArticleWebView(url: article.url),
+                    builder: (context) => ArticleWebView(url: widget.article.url),
                   ),
                 );
               },
@@ -559,5 +609,33 @@ class _ThemeSwitch extends StatelessWidget {
         ),
       ),
     );
+  }
+}
+
+class SummaryService {
+  static Future<String?> fetchSummary(String articleUrl) async {
+    const apiKey = 'ef87df33cbmsh310a583bffffb57p1cb9d7jsn4f235f7908af';
+    const apiHost = 'article-extractor-and-summarizer.p.rapidapi.com';
+
+    try {
+      final encodedUrl = Uri.encodeComponent(articleUrl);
+      final response = await http.get(
+        Uri.parse(
+          'https://article-extractor-and-summarizer.p.rapidapi.com/summarize?url=$encodedUrl&lang=en&engine=2'
+        ),
+        headers: {
+          'X-RapidAPI-Key': apiKey,
+          'X-RapidAPI-Host': apiHost,
+        },
+      );
+
+      if (response.statusCode == 200) {
+        final jsonData = jsonDecode(response.body);
+        return jsonData['summary'] ?? jsonData['message'] ?? 'No summary available';
+      }
+      return 'Failed to load summary (${response.statusCode})';
+    } catch (e) {
+      return 'Error: $e';
+    }
   }
 }
