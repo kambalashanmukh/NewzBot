@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
+import 'package:hive_flutter/hive_flutter.dart';
 import 'package:http/http.dart' as http;
 import 'dart:convert';
 import 'package:intl/intl.dart';
@@ -8,7 +9,13 @@ import 'package:webview_flutter_android/webview_flutter_android.dart';
 import 'chat_screen.dart';
 import 'market_page.dart';
 
-void main() => runApp(MyApp());
+void main() async {
+  WidgetsFlutterBinding.ensureInitialized();
+  await Hive.initFlutter();
+  Hive.registerAdapter(MarketDataAdapter());
+  await Hive.openBox<MarketData>('marketData');
+  runApp(MyApp());
+}
 
 class MyApp extends StatefulWidget {
   const MyApp({super.key});
@@ -246,7 +253,6 @@ class MyAppState extends State<MyApp> with TickerProviderStateMixin {
     );
   }
 }
-
 class Article {
   final String title;
   final String description;
