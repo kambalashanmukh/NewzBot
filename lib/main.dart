@@ -8,6 +8,8 @@ import 'package:webview_flutter/webview_flutter.dart';
 import 'package:webview_flutter_android/webview_flutter_android.dart';
 import 'chat_screen.dart';
 import 'market_page.dart';
+import 'package:firebase_core/firebase_core.dart';
+import 'firebase_options.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
@@ -15,6 +17,9 @@ void main() async {
   Hive.registerAdapter(MarketDataAdapter());
   await Hive.openBox<MarketData>('marketData');
   runApp(MyApp());
+  await Firebase.initializeApp(
+  options: DefaultFirebaseOptions.currentPlatform,
+);
 }
 
 class MyApp extends StatefulWidget {
@@ -92,9 +97,10 @@ class MyAppState extends State<MyApp> with TickerProviderStateMixin {
         }
       }
       return articles;
-    } else {
+    } /*else {
       throw Exception('Failed to load articles');
-    }
+    }*/
+    return []; // Return an empty list if the response is not successful
   }
 
   ThemeData get lightTheme => ThemeData(
