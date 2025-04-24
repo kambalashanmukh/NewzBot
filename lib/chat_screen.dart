@@ -13,7 +13,11 @@ class _ChatScreenState extends State<ChatScreen> {
   final TextEditingController _controller = TextEditingController();
   final List<Map<String, String>> _messages = [];
   bool _isLoading = false;
-  static const String _apiKey = 'AIzaSyBWRr305KeB6DbCmhvhCRIuTuIwkJm1zvw'; // Replace this!
+  final ScrollController _scrollController = ScrollController();
+
+  // Groq Cloud Configuration
+  static const String _apiKey = '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';
+  static const String _apiUrl = 'https://api.groq.com/openai/v1/chat/completions';
 
   Future<void> sendMessage(String text) async {
     if (text.isEmpty) return;
@@ -25,117 +29,153 @@ class _ChatScreenState extends State<ChatScreen> {
 
     try {
       final response = await http.post(
-        Uri.parse("https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash-lite:generateContent?key=$_apiKey"),
-        headers: {'Content-Type': 'application/json'},
+        Uri.parse(_apiUrl),
+        headers: {
+          'Authorization': 'Bearer $_apiKey',
+          'Content-Type': 'application/json',
+        },
         body: jsonEncode({
-          "contents": [
+          "model": "compound-beta", // Use exact model name from successful response
+          "messages": [
             {
-              "parts": [
-                {"text": text}
-              ]
-            }
+              "role": "system",
+              "content": "you are a newzbot that provides current news updates only not other information and give summerized answers in 2-3 lines"
+            },
+            {"role": "user", "content": text}
           ],
-          "systemInstruction": {
-            "parts": [
-              {"text": "You are a helpful assistant focused only on news topics not outside news topics."}
-            ]
-          }
+          "temperature": 0.7,
+          "max_tokens": 1024,
+          "stop": null,
+          "stream": false
         }),
-      );
+      ).timeout(const Duration(seconds: 30));
 
-      final data = jsonDecode(response.body);
-      
+      print('API Response: ${response.body}');
+
       if (response.statusCode == 200) {
-        if (data['candidates'] != null && data['candidates'].isNotEmpty) {
-          final content = data['candidates'][0]['content']['parts'][0]['text'];
-          setState(() => _messages.add({'role': 'assistant', 'content': content}));
+        final data = jsonDecode(response.body);
+        if (data.containsKey('choices')) {
+          final choices = data['choices'] as List;
+          if (choices.isNotEmpty) {
+            final firstChoice = choices[0];
+            final message = firstChoice['message'] as Map<String, dynamic>;
+            final content = message['content'] as String;
+            setState(() => _messages.add({
+                  'role': 'assistant',
+                  'content': content
+                }));
+          } else {
+            throw Exception('No choices available in response');
+          }
         } else {
-          throw Exception('No valid response from API');
+          throw Exception('Unexpected response format');
         }
       } else {
-        throw Exception('API Error: ${data['error']['message'] ?? 'Unknown error'}');
+        throw Exception('API Error ${response.statusCode}: ${response.body}');
       }
     } catch (e) {
       setState(() {
         _messages.add({
-          'role': 'assistant', 
+          'role': 'assistant',
           'content': 'Error: ${e.toString().replaceAll(RegExp(r'^Exception: '), '')}'
         });
       });
     } finally {
       setState(() => _isLoading = false);
+      _scrollToBottom();
+    }
+  }
+
+
+  void _scrollToBottom() {
+    if (_scrollController.hasClients) {
+      _scrollController.animateTo(
+        _scrollController.position.minScrollExtent,
+        duration: const Duration(milliseconds: 300),
+        curve: Curves.easeOut,
+      );
     }
   }
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(title: const Text("Chat with NewzBot")),
+      appBar: AppBar(
+        title: const Text("Chat with NewzBot"),
+        centerTitle: true,
+      ),
       body: Column(
         children: [
           Expanded(
             child: ListView.builder(
+              controller: _scrollController,
               padding: const EdgeInsets.all(8),
-              reverse: true, // New messages at bottom
-              itemCount: _messages.length,
+              reverse: true,
+              itemCount: _messages.length + (_isLoading ? 1 : 0),
               itemBuilder: (context, index) {
-                final message = _messages.reversed.toList()[index];
-                return Padding(
-                  padding: const EdgeInsets.symmetric(vertical: 4),
-                  child: Align(
-                    alignment: message['role'] == 'user' 
-                        ? Alignment.centerRight 
-                        : Alignment.centerLeft,
-                    child: Container(
-                      constraints: BoxConstraints(
-                        maxWidth: MediaQuery.of(context).size.width * 0.8,
-                      ),
-                      padding: const EdgeInsets.all(12),
-                      decoration: BoxDecoration(
-                        color: message['role'] == 'user'
-                            ? Colors.blue
-                            : Colors.grey[300],
-                        borderRadius: BorderRadius.circular(12),
-                      ),
-                      child: Text(
-                        message['content']!,
-                        style: TextStyle(
-                          color: message['role'] == 'user'
-                              ? Colors.white
-                              : Colors.black,
-                        ),
-                      ),
-                    ),
-                  ),
-                );
+                if (index == 0 && _isLoading) {
+                  return _buildTypingIndicator();
+                }
+                final message = _messages.reversed.toList()[index - (_isLoading ? 1 : 0)];
+                return _buildMessageBubble(message);
               },
             ),
           ),
-          SafeArea(
-            child: Padding(
-              padding: const EdgeInsets.all(8.0),
-              child: Row(
-                children: [
-                  Expanded(
-                    child: TextField(
-                      controller: _controller,
-                      decoration: InputDecoration(
-                        hintText: 'Ask about news...',
-                        border: const OutlineInputBorder(),
-                        filled: true,
-                        fillColor: Theme.of(context).cardColor,
-                      ),
-                      onSubmitted: (value) => _sendMessageIfValid(),
-                    ),
-                  ),
-                  const SizedBox(width: 4),
-                  IconButton(
-                    icon: _isLoading
-                        ? const CircularProgressIndicator()
-                        : const Icon(Icons.send_rounded),
-                    onPressed: _sendMessageIfValid,
-                  ),
+          _buildInputArea(),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildMessageBubble(Map<String, String> message) {
+    final isUser = message['role'] == 'user';
+    return Padding(
+      padding: const EdgeInsets.symmetric(vertical: 8, horizontal: 12),
+      child: Row(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        mainAxisAlignment: isUser ? MainAxisAlignment.end : MainAxisAlignment.start,
+        children: [
+          if (!isUser)
+            Padding(
+              padding: const EdgeInsets.only(right: 8),
+              child: CircleAvatar(
+                radius: 16,
+                backgroundColor: Colors.transparent,
+                child: Image.asset(
+                  'lib/Icons/bot.png',
+                  width: 32,
+                  height: 32,
+                ),
+              ),
+            ),
+          Flexible(
+            child: Container(
+              constraints: BoxConstraints(
+                maxWidth: MediaQuery.of(context).size.width * 0.8,
+              ),
+              padding: const EdgeInsets.symmetric(
+                vertical: 12,
+                horizontal: 16,
+              ),
+              decoration: BoxDecoration(
+                color: isUser
+                    ? Theme.of(context).primaryColor
+                    : Colors.grey[200],
+                borderRadius: BorderRadius.circular(20),
+                boxShadow: [
+                  BoxShadow(
+                    color: Colors.black12,
+                    blurRadius: 4,
+                    offset: Offset(0, 2),
+                  )
                 ],
+              ),
+              child: Text(
+                message['content']!,
+                style: TextStyle(
+                  color: isUser ? Colors.white : Colors.black,
+                  fontSize: 16,
+                ),
               ),
             ),
           ),
@@ -144,10 +184,126 @@ class _ChatScreenState extends State<ChatScreen> {
     );
   }
 
+  Widget _buildTypingIndicator() {
+    return Padding(
+      padding: const EdgeInsets.symmetric(vertical: 16),
+      child: Row(
+        crossAxisAlignment: CrossAxisAlignment.center,
+        children: [
+          Padding(
+            padding: const EdgeInsets.only(left: 16, right: 8),
+            child: CircleAvatar(
+              radius: 16,
+              backgroundColor: Colors.transparent,
+              child: Image.asset(
+                'lib/Icons/bot.png',
+                width: 32,
+                height: 32,
+              ),
+            ),
+          ),
+          Container(
+            padding: const EdgeInsets.symmetric(
+              vertical: 12,
+              horizontal: 16,
+            ),
+            decoration: BoxDecoration(
+              color: Colors.grey[200],
+              borderRadius: BorderRadius.circular(20),
+            ),
+            child: Row(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                Container(
+                  width: 8,
+                  height: 8,
+                  margin: const EdgeInsets.only(right: 4),
+                  decoration: BoxDecoration(
+                    color: Colors.grey[600],
+                    shape: BoxShape.circle,
+                  ),
+                ),
+                Container(
+                  width: 8,
+                  height: 8,
+                  margin: const EdgeInsets.only(right: 4),
+                  decoration: BoxDecoration(
+                    color: Colors.grey[600],
+                    shape: BoxShape.circle,
+                  ),
+                ),
+                Container(
+                  width: 8,
+                  height: 8,
+                  decoration: BoxDecoration(
+                    color: Colors.grey[600],
+                    shape: BoxShape.circle,
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildInputArea() {
+    return SafeArea(
+      child: Padding(
+        padding: const EdgeInsets.all(12.0),
+        child: Row(
+          children: [
+            Expanded(
+              child: TextField(
+                controller: _controller,
+                minLines: 1,
+                maxLines: 3,
+                decoration: InputDecoration(
+                  hintText: 'Ask about current news...',
+                  filled: true,
+                  fillColor: Theme.of(context).cardColor,
+                  border: OutlineInputBorder(
+                    borderRadius: BorderRadius.circular(30),
+                    borderSide: BorderSide.none,
+                  ),
+                  contentPadding: const EdgeInsets.symmetric(
+                    horizontal: 20,
+                    vertical: 14,
+                  ),
+                  suffixIcon: _isLoading
+                      ? Padding(
+                          padding: const EdgeInsets.all(12),
+                          child: CircularProgressIndicator(
+                            strokeWidth: 2,
+                            color: Theme.of(context).primaryColor,
+                          ),
+                        )
+                      : null,
+                ),
+                onSubmitted: (value) => _sendMessageIfValid(),
+              ),
+            ),
+            const SizedBox(width: 8),
+            CircleAvatar(
+              radius: 24,
+              backgroundColor: Theme.of(context).primaryColor,
+              child: IconButton(
+                icon: const Icon(Icons.send_rounded, color: Colors.white),
+                onPressed: _sendMessageIfValid,
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
   void _sendMessageIfValid() {
     if (_controller.text.trim().isNotEmpty && !_isLoading) {
       sendMessage(_controller.text.trim());
       _controller.clear();
+      _scrollToBottom();
     }
   }
 }
