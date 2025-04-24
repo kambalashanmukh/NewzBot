@@ -17,11 +17,6 @@ class _LoginScreenState extends State<LoginScreen> {
   String? _errorMessage;
   bool _isLoading = false;
 
-  // Generate random avatar URL
-  String _getRandomAvatar(String seed) {
-    return 'https://api.dicebear.com/7.x/personas/png?seed=${Uri.encodeComponent(_emailController.text)}';
-  }
-
   @override
   Widget build(BuildContext context) {
     final authService = Provider.of<AuthService>(context);

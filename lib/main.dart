@@ -46,13 +46,15 @@ class MyApp extends StatefulWidget {
 
 class MyAppState extends State<MyApp> with TickerProviderStateMixin {
   bool isDarkTheme = false;
+  bool _isSearching = false;
   late TabController tabController;
   final List<String> categories = [
-    'For You', 'Sports', 'Entertainment','business', 'Technology', 'Health', 'Science'
+    'For You', 'Sports', 'Entertainment', 'Business', 'Technology', 'Health', 'Science'
   ];
-
-  final String apiKey = '51169299e55d4ef18f1f15d4b147a3c4';
+  final String apiKey = 'b21b107a4bb0432497f5586be3a482ce';
   final Map<String, Future<List<Article>>> categoryFutures = {};
+  final TextEditingController searchController = TextEditingController();
+  String searchQuery = '';
 
   @override
   void initState() {
@@ -66,6 +68,7 @@ class MyAppState extends State<MyApp> with TickerProviderStateMixin {
   void dispose() {
     tabController.removeListener(_handleTabSelection);
     tabController.dispose();
+    searchController.dispose();
     super.dispose();
   }
 
@@ -117,72 +120,104 @@ class MyAppState extends State<MyApp> with TickerProviderStateMixin {
     return [];
   }
 
-  ThemeData get lightTheme => ThemeData(
-        primarySwatch: Colors.blue,
-        scaffoldBackgroundColor: Colors.white,
-        textTheme: const TextTheme(
-          bodyLarge: TextStyle(color: Colors.black),
-      ));
-
-  ThemeData get darkTheme => ThemeData.dark().copyWith(
-        scaffoldBackgroundColor: Colors.grey[900],
-        textTheme: const TextTheme(
-          bodyLarge: TextStyle(color: Colors.white),
-      ));
-
+    List<Article> _filterArticles(List<Article> articles) {
+      if (searchQuery.isEmpty) {
+        return articles;
+      }
+      final query = searchQuery.toLowerCase();
+      return articles.where((article) {
+        return article.title.toLowerCase().contains(query) ||
+            article.description.toLowerCase().contains(query) ||
+            article.content.toLowerCase().contains(query) ||
+            article.source.toLowerCase().contains(query);
+      }).toList();
+    }
   @override
   Widget build(BuildContext context) {
     return MaterialApp(
-      theme: isDarkTheme ? darkTheme : lightTheme,
+      theme: isDarkTheme ? ThemeData.dark() : ThemeData.light(),
       home: Builder(
         builder: (context) => Scaffold(
-          appBar: AppBar(
-              title: Row(
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                CircleAvatar(
-                  radius: 20,
-                  backgroundColor: Colors.transparent,
-                  child: Image.asset(
-                    isDarkTheme 
-                        ? 'lib/Icons/whitelogo.png'
-                        : 'lib/Icons/blacklogo.png',
-                    width: 40,
-                    height: 40,
-                  ),
+              appBar: AppBar(
+                title: _isSearching
+                    ? TextField(
+                        controller: searchController,
+                        autofocus: true,
+                        decoration: const InputDecoration(
+                          hintText: 'Search articles...',
+                          border: InputBorder.none,
+                        ),
+                        style: TextStyle(
+                          color: isDarkTheme ? Colors.white : Colors.black,
+                        ),
+                        onChanged: (value) {
+                          setState(() {
+                            searchQuery = value;
+                          });
+                        },
+                        onSubmitted: (value) {
+                          setState(() {
+                            searchQuery = value;
+                            _isSearching = false;
+                          });
+                        },
+                      )
+                    : Row(
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          CircleAvatar(
+                            radius: 20,
+                            backgroundColor: Colors.transparent,
+                            child: Image.asset(
+                              isDarkTheme 
+                                  ? 'lib/Icons/whitelogo.png'
+                                  : 'lib/Icons/blacklogo.png',
+                              width: 40,
+                              height: 40,
+                            ),
+                          ),
+                          const SizedBox(width: 5),
+                          const Text('NewzBot'),
+                        ],
+                      ),
+                centerTitle: true,
+                bottom: TabBar(
+                  controller: tabController,
+                  isScrollable: true,
+                  tabs: categories.map((category) => Tab(text: category)).toList(),
                 ),
-                const SizedBox(width: 5),
-                const Text('NewzBot'),
-              ],
-            ),
-            centerTitle: true,
-            bottom: TabBar(
-              controller: tabController,
-              isScrollable: true,
-              tabs: categories.map((category) => Tab(text: category)).toList(),
-            ),
-            actions: [
-              IconButton(
-                icon: const Icon(Icons.search),
-                onPressed: () {},
+                actions: [
+                  IconButton(
+                    icon: Icon(_isSearching ? Icons.close : Icons.search),
+                    onPressed: () {
+                      setState(() {
+                        if (_isSearching) {
+                          _isSearching = false;
+                          searchQuery = '';
+                          searchController.clear();
+                        } else {
+                          _isSearching = true;
+                        }
+                      });
+                    },
+                  ),
+                  IconButton(
+                    icon: Image.asset('lib/Icons/bot.png', 
+                      width: 25, 
+                      height: 25, 
+                      color: isDarkTheme 
+                          ? const Color.fromARGB(226, 222, 221, 221) 
+                          : const Color.fromARGB(223, 46, 46, 46)),
+                    onPressed: () async {
+                      Navigator.push(
+                        context,
+                        MaterialPageRoute(builder: (context) => const ChatScreen()),
+                      );
+                    },
+                  )
+                ],
               ),
-              IconButton(
-                icon: Image.asset('lib/Icons/bot.png', 
-                  width: 25, 
-                  height: 25, 
-                  color: isDarkTheme 
-                      ? const Color.fromARGB(226, 222, 221, 221) 
-                      : const Color.fromARGB(223, 46, 46, 46)),
-                onPressed: () async {
-                  Navigator.push(
-                    context,
-                    MaterialPageRoute(builder: (context) => const ChatScreen()),
-                  );
-                },
-              )
-            ],
-          ),
-          drawer: buildDrawer(context),
+                        drawer: buildDrawer(context),
           body: TabBarView(
             controller: tabController,
             children: categories.map((category) => 
@@ -196,10 +231,11 @@ class MyAppState extends State<MyApp> with TickerProviderStateMixin {
                   } else if (!snapshot.hasData || snapshot.data!.isEmpty) {
                     return const Center(child: Text('No articles found'));
                   }
+                  final filteredArticles = _filterArticles(snapshot.data!);
                   return ListView.builder(
-                    itemCount: snapshot.data!.length,
+                    itemCount: filteredArticles.length,
                     itemBuilder: (context, index) {
-                      final article = snapshot.data![index];
+                      final article = filteredArticles[index];
                       return NewsCard(
                         article: article,
                         onTap: () {
