@@ -14,6 +14,7 @@ class AuthService {
         email: email,
         password: password,
       );
+      await result.user?.updateDisplayName(email.split('@')[0]);
       return result.user;
     } catch (e) {
       print(e);

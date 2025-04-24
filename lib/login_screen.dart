@@ -15,6 +15,12 @@ class _LoginScreenState extends State<LoginScreen> {
   final TextEditingController _confirmPasswordController = TextEditingController();
   bool _isRegistering = false;
   String? _errorMessage;
+  bool _isLoading = false;
+
+  // Generate random avatar URL
+  String _getRandomAvatar(String seed) {
+    return 'https://api.dicebear.com/7.x/personas/png?seed=${Uri.encodeComponent(_emailController.text)}';
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -28,6 +34,15 @@ class _LoginScreenState extends State<LoginScreen> {
           child: SingleChildScrollView(
             child: Column(
               children: [
+                if (_isRegistering)
+                  CircleAvatar(
+                    radius: 50,
+                    backgroundColor: Colors.blueGrey,
+                    backgroundImage: NetworkImage(
+                      _getRandomAvatar(_emailController.text),
+                    ),
+                  ),
+                const SizedBox(height: 20),
                 TextFormField(
                   controller: _emailController,
                   decoration: const InputDecoration(labelText: 'Email'),
@@ -71,15 +86,23 @@ class _LoginScreenState extends State<LoginScreen> {
                 const SizedBox(height: 20),
                 if (_errorMessage != null)
                   Padding(
-                    padding: const EdgeInsets.only(bottom: 10),
-                    child: Text(
-                      _errorMessage!,
-                      style: TextStyle(color: Theme.of(context).colorScheme.error),
+                    padding: const EdgeInsets.symmetric(vertical: 10),
+                    child: Column(
+                      children: [
+                        Text(_errorMessage!,
+                            style: TextStyle(color: Colors.red)),
+                        if (_errorMessage!.contains('not found'))
+                          TextButton(
+                            onPressed: () => setState(() => _isRegistering = true),
+                            child: const Text('Create account instead?'),
+                          )
+                      ],
                     ),
                   ),
                 ElevatedButton(
-                  onPressed: () async {
+                  onPressed: _isLoading ? null : () async {
                     if (_formKey.currentState!.validate()) {
+                      setState(() => _isLoading = true);
                       try {
                         User? user;
                         if (_isRegistering) {
@@ -93,17 +116,17 @@ class _LoginScreenState extends State<LoginScreen> {
                             _passwordController.text,
                           );
                         }
-                        if (user != null) {
-                          Navigator.pop(context);
-                        }
+                        if (user != null) Navigator.pop(context);
                       } on FirebaseAuthException catch (e) {
-                        setState(() {
-                          _errorMessage = _getErrorMessage(e);
-                        });
+                        _handleAuthError(e, context);
+                      } finally {
+                        setState(() => _isLoading = false);
                       }
                     }
                   },
-                  child: Text(_isRegistering ? 'Register' : 'Sign In'),
+                  child: _isLoading 
+                     ? const CircularProgressIndicator()
+                     : Text(_isRegistering ? 'Register' : 'Sign In'),
                 ),
                 TextButton(
                   onPressed: () {
@@ -148,18 +171,21 @@ class _LoginScreenState extends State<LoginScreen> {
     );
   }
 
-  String _getErrorMessage(FirebaseAuthException error) {
-    switch (error.code) {
-      case 'weak-password':
-        return 'Password is too weak';
-      case 'email-already-in-use':
-        return 'Email is already registered';
+  void _handleAuthError(FirebaseAuthException e, BuildContext context) {
+    String message;
+    switch (e.code) {
       case 'user-not-found':
-        return 'No user found with this email';
+        message = 'Account not found. Create new account?';
+        break;
       case 'wrong-password':
-        return 'Incorrect password';
+        message = 'Incorrect password. Please try again.';
+        break;
+      case 'email-already-in-use':
+        message = 'Email already registered. Try logging in.';
+        break;
       default:
-        return 'Authentication failed: ${error.message}';
+        message = 'Error: ${e.message}';
     }
+    setState(() => _errorMessage = message);
   }
 }

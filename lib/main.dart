@@ -206,48 +206,92 @@ class MyAppState extends State<MyApp> with TickerProviderStateMixin {
 
   Widget buildDrawer(BuildContext context) {
     final user = Provider.of<User?>(context);
+    final avatarUrl = user != null 
+        ? 'https://api.dicebear.com/7.x/personas/png?seed=${Uri.encodeComponent(user.uid)}'
+        : '';
+
     return Drawer(
       child: ListView(
         padding: EdgeInsets.zero,
         children: [
-          DrawerHeader(
+          UserAccountsDrawerHeader(
+            accountName: Text(
+              user?.displayName ?? user?.email ?? 'Guest User',
+              style: const TextStyle(fontSize: 18),
+            ),
+            accountEmail: user != null 
+                ? Text(user.email!)
+                : const Text('Not logged in'),
+            currentAccountPicture: CircleAvatar(
+              backgroundColor: isDarkTheme ? Colors.blueGrey[800] : Colors.blue[100],
+              child: ClipOval(
+                child: Image.network(
+                  avatarUrl,
+                  fit: BoxFit.cover,
+                  width: 100,
+                  height: 100,
+                  errorBuilder: (context, error, stackTrace) {
+                    return Icon(
+                      Icons.person,
+                      size: 48,
+                      color: isDarkTheme ? Colors.white : Colors.blue[800],
+                    );
+                  },
+                  loadingBuilder: (context, child, loadingProgress) {
+                    if (loadingProgress == null) return child;
+                    return CircularProgressIndicator(
+                      value: loadingProgress.cumulativeBytesLoaded /
+                          (loadingProgress.expectedTotalBytes ?? 1),
+                    );
+                  },
+                ),
+              ),
+            ),
             decoration: BoxDecoration(
               color: isDarkTheme ? Colors.blueGrey : Colors.blue,
             ),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                const Text('Version 0.0.1',
-                    style: TextStyle(color: Colors.white, fontSize: 10)),
-                const Spacer(),
-                const Icon(Icons.account_circle, size: 60, color: Colors.white),
-                Text(
-                  user != null ? 'Hello ${user.email}!' : 'Hello Guest!',
-                  style: const TextStyle(color: Colors.white, fontSize: 20),
-                ),
-              ],
-            ),
           ),
-          ListTile(
-            leading: const Icon(Icons.person),
-            title: Text(user != null ? 'Profile' : 'Login'),
-            onTap: () {
-              Navigator.pop(context);
-              if (user == null) {
+          if (user == null)
+            ListTile(
+              leading: const Icon(Icons.person),
+              title: const Text('Login'),
+              onTap: () {
+                Navigator.pop(context);
                 Navigator.push(
                   context,
                   MaterialPageRoute(builder: (context) => LoginScreen()),
                 );
-              }
-            },
-          ),
+              },
+            ),
           if (user != null)
             ListTile(
               leading: const Icon(Icons.logout),
               title: const Text('Logout'),
               onTap: () async {
-                await Provider.of<AuthService>(context, listen: false).signOut();
-                Navigator.pop(context);
+                final shouldLogout = await showDialog<bool>(
+                  context: context,
+                  builder: (context) {
+                    return AlertDialog(
+                      title: const Text('Confirm Logout'),
+                      content: const Text('Are you sure you want to log out?'),
+                      actions: [
+                        TextButton(
+                          onPressed: () => Navigator.of(context).pop(false), // Cancel
+                          child: const Text('No'),
+                        ),
+                        TextButton(
+                          onPressed: () => Navigator.of(context).pop(true), // Confirm
+                          child: const Text('Yes'),
+                        ),
+                      ],
+                    );
+                  },
+                );
+
+                if (shouldLogout == true) {
+                  await Provider.of<AuthService>(context, listen: false).signOut();
+                  Navigator.pop(context); // Close the drawer
+                }
               },
             ),
           ListTile(
