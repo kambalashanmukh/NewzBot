@@ -32,7 +32,12 @@ android {
         versionCode = flutter.versionCode
         versionName = flutter.versionName
     }
-
+    
+    dependencies {
+    implementation platform('com.google.firebase:firebase-bom:32.8.0')
+    implementation 'com.google.android.gms:play-services-auth:21.1.0'
+    }
+    
     buildTypes {
         release {
             // TODO: Add your own signing config for the release build.

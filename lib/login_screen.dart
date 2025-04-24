@@ -24,6 +24,7 @@ class LoginScreen extends StatelessWidget {
               obscureText: true,
               decoration: const InputDecoration(labelText: 'Password'),
             ),
+            const SizedBox(height: 20),
             ElevatedButton(
               onPressed: () async {
                 final user = await authService.signInWithEmail(
@@ -47,6 +48,29 @@ class LoginScreen extends StatelessWidget {
                 }
               },
               child: const Text('Register'),
+            ),
+            const Divider(thickness: 1),
+            const SizedBox(height: 20),
+            const Text('Or continue with'),
+            const SizedBox(height: 20),
+            ElevatedButton.icon(
+              style: ElevatedButton.styleFrom(
+                backgroundColor: Colors.white,
+                foregroundColor: Colors.black,
+                minimumSize: const Size(double.infinity, 50),
+              ),
+              icon: Image.asset(
+                'lib/Icons/google.png', // Add a Google icon asset
+                height: 24,
+                width: 24,
+              ),
+              label: const Text('Sign in with Google'),
+              onPressed: () async {
+                final user = await authService.signInWithGoogle();
+                if (user != null) {
+                  Navigator.pop(context);
+                }
+              },
             ),
           ],
         ),
