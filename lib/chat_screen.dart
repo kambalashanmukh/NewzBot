@@ -350,12 +350,12 @@ class _ChatScreenState extends State<ChatScreen> {
             CircleAvatar(
               radius: 24,
               backgroundColor: theme.brightness == Brightness.dark
-                  ? Colors.deepPurple[400] // Match user bubble color in dark mode
-                  : Colors.deepPurple[400], // A clean blue color for light mode
+                  ? Colors.deepPurple[400] 
+                  : Colors.deepPurple[400], 
               child: IconButton(
                 icon: Icon(
                   Icons.send_rounded,
-                  color: Colors.white, // Keep the icon white for both modes
+                  color: Colors.white, 
                 ),
                 onPressed: _sendMessageIfValid,
               ),
