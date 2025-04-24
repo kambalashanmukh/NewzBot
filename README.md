@@ -1,6 +1,8 @@
 # NewzBot - Article Summarizer and News Chatbot
 
-![NewzBot Logo](lib/Icons/blacklogo.png)
+'''markdown
+<img src="lib/Icons/whitelogo.png" alt="NewzBot Logo" width="200" height="200">
+'''
 
 NewzBot is a Flutter-based application designed to deliver the latest news updates and provide article summarization in a user-friendly and visually appealing interface. This project serves as a foundation for building a robust news application with advanced chatbot capabilities.
 
