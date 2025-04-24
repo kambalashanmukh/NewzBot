@@ -14,6 +14,7 @@ import 'package:firebase_auth/firebase_auth.dart';
 import 'package:provider/provider.dart';
 import 'auth_service.dart';
 import 'login_screen.dart';
+import 'downloads_page.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
@@ -366,7 +367,13 @@ class MyAppState extends State<MyApp> with TickerProviderStateMixin {
           ListTile(
             leading: const Icon(Icons.download),
             title: const Text('Downloads'),
-            onTap: () => Navigator.pop(context),
+            onTap: () {
+              Navigator.pop(context); // Close the drawer
+              Navigator.push(
+                context,
+                MaterialPageRoute(builder: (context) => DownloadsPage()), // Navigate to DownloadsPage
+              );
+            },
           ),
           ListTile(
             leading: const Icon(Icons.brightness_medium),
@@ -518,9 +525,41 @@ class _ArticleDetailPageState extends State<ArticleDetailPage> {
 
   @override
   Widget build(BuildContext context) {
+    final user = Provider.of<User?>(context); // Get the current user
+
     return Scaffold(
       appBar: AppBar(
         title: const Text('Article Details'),
+        actions: [
+          IconButton(
+            icon: const Icon(Icons.download),
+            onPressed: () {
+              if (user == null) {
+                // Show dialog if user is not logged in
+                showDialog(
+                  context: context,
+                  builder: (context) {
+                    return AlertDialog(
+                      title: const Text('Login Required'),
+                      content: const Text('Login to download this article.'),
+                      actions: [
+                        TextButton(
+                          onPressed: () => Navigator.of(context).pop(), // Close dialog
+                          child: const Text('OK'),
+                        ),
+                      ],
+                    );
+                  },
+                );
+              } else {
+                // Handle download logic here if user is logged in
+                ScaffoldMessenger.of(context).showSnackBar(
+                  const SnackBar(content: Text('Download started!')),
+                );
+              }
+            },
+          ),
+        ],
       ),
       body: SingleChildScrollView(
         padding: const EdgeInsets.all(16),
@@ -770,7 +809,7 @@ class SummaryService {
           'X-RapidAPI-Key': apiKey,
           'X-RapidAPI-Host': apiHost,
         },
-      );
+    );
 
       if (response.statusCode == 200) {
         final jsonData = jsonDecode(response.body);
