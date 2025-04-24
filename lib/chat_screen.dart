@@ -1,7 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:http/http.dart' as http;
 import 'dart:convert';
-
 class ChatScreen extends StatefulWidget {
   const ChatScreen({super.key});
 
@@ -145,6 +144,9 @@ class _ChatScreenState extends State<ChatScreen> {
                   'lib/Icons/bot.png',
                   width: 32,
                   height: 32,
+                  color: Theme.of(context).brightness == Brightness.dark 
+                          ? const Color.fromARGB(226, 222, 221, 221) 
+                          : const Color.fromARGB(223, 46, 46, 46),
                 ),
               ),
             ),
@@ -199,6 +201,9 @@ class _ChatScreenState extends State<ChatScreen> {
                 'lib/Icons/bot.png',
                 width: 32,
                 height: 32,
+                color: Theme.of(context).brightness == Brightness.dark 
+                          ? const Color.fromARGB(226, 222, 221, 221) 
+                          : const Color.fromARGB(223, 46, 46, 46),
               ),
             ),
           ),
