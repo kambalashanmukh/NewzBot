@@ -10,16 +10,32 @@ import 'chat_screen.dart';
 import 'market_page.dart';
 import 'package:firebase_core/firebase_core.dart';
 import 'firebase_options.dart';
+import 'package:firebase_auth/firebase_auth.dart';
+import 'package:provider/provider.dart';
+import 'auth_service.dart';
+import 'login_screen.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
+  await Firebase.initializeApp(
+    options: DefaultFirebaseOptions.currentPlatform,
+  );
   await Hive.initFlutter();
   Hive.registerAdapter(MarketDataAdapter());
   await Hive.openBox<MarketData>('marketData');
-  runApp(MyApp());
-  await Firebase.initializeApp(
-  options: DefaultFirebaseOptions.currentPlatform,
-);
+  
+  runApp(
+    MultiProvider(
+      providers: [
+        Provider<AuthService>(create: (_) => AuthService()),
+        StreamProvider<User?>.value(
+          value: AuthService().authStateChanges,
+          initialData: null,
+        ),
+      ],
+      child: const MyApp(),
+    ),
+  );
 }
 
 class MyApp extends StatefulWidget {
@@ -97,10 +113,8 @@ class MyAppState extends State<MyApp> with TickerProviderStateMixin {
         }
       }
       return articles;
-    } /*else {
-      throw Exception('Failed to load articles');
-    }*/
-    return []; // Return an empty list if the response is not successful
+    }
+    return [];
   }
 
   ThemeData get lightTheme => ThemeData(
@@ -191,6 +205,7 @@ class MyAppState extends State<MyApp> with TickerProviderStateMixin {
   }
 
   Widget buildDrawer(BuildContext context) {
+    final user = Provider.of<User?>(context);
     return Drawer(
       child: ListView(
         padding: EdgeInsets.zero,
@@ -206,16 +221,35 @@ class MyAppState extends State<MyApp> with TickerProviderStateMixin {
                     style: TextStyle(color: Colors.white, fontSize: 10)),
                 const Spacer(),
                 const Icon(Icons.account_circle, size: 60, color: Colors.white),
-                const Text('Hello User!',
-                    style: TextStyle(color: Colors.white, fontSize: 20)),
+                Text(
+                  user != null ? 'Hello ${user.email}!' : 'Hello Guest!',
+                  style: const TextStyle(color: Colors.white, fontSize: 20),
+                ),
               ],
             ),
           ),
           ListTile(
             leading: const Icon(Icons.person),
-            title: const Text('Account'),
-            onTap: () => Navigator.pop(context),
+            title: Text(user != null ? 'Profile' : 'Login'),
+            onTap: () {
+              Navigator.pop(context);
+              if (user == null) {
+                Navigator.push(
+                  context,
+                  MaterialPageRoute(builder: (context) => LoginScreen()),
+                );
+              }
+            },
           ),
+          if (user != null)
+            ListTile(
+              leading: const Icon(Icons.logout),
+              title: const Text('Logout'),
+              onTap: () async {
+                await Provider.of<AuthService>(context, listen: false).signOut();
+                Navigator.pop(context);
+              },
+            ),
           ListTile(
             leading: const Icon(Icons.newspaper),
             title: const Text('News'),
@@ -225,12 +259,12 @@ class MyAppState extends State<MyApp> with TickerProviderStateMixin {
             leading: const Icon(Icons.stacked_line_chart_outlined),
             title: const Text('Market'),
             onTap: () {
-                  Navigator.pop(context);
-                  Navigator.push(
-                    context,
-                  MaterialPageRoute(builder: (context) => const MarketPage()),
-                  );
-                },
+              Navigator.pop(context);
+              Navigator.push(
+                context,
+                MaterialPageRoute(builder: (context) => const MarketPage()),
+              );
+            },
           ),
           ListTile(
             leading: const Icon(Icons.download),
