@@ -25,6 +25,8 @@ class _LoginScreenState extends State<LoginScreen> {
   @override
   Widget build(BuildContext context) {
     final authService = Provider.of<AuthService>(context);
+    final isDarkTheme = Theme.of(context).brightness == Brightness.dark;
+
     return Scaffold(
       appBar: AppBar(title: const Text('Login / Register')),
       body: Padding(
@@ -34,14 +36,41 @@ class _LoginScreenState extends State<LoginScreen> {
           child: SingleChildScrollView(
             child: Column(
               children: [
+                // Logo and Title
+                Center(
+                  child: Column(
+                    children: [
+                      CircleAvatar(
+                        radius: 50,
+                        backgroundColor: Colors.transparent,
+                        child: Image.asset(
+                          isDarkTheme
+                              ? 'lib/Icons/whitelogo.png' // White logo for dark theme
+                              : 'lib/Icons/blacklogo.png', // Black logo for light theme
+                          width: 100,
+                          height: 100,
+                        ),
+                      ),
+                      const SizedBox(height: 10),
+                      const Text(
+                        'NewzBot',
+                        style: TextStyle(
+                          fontSize: 24,
+                          fontWeight: FontWeight.bold,
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+                const SizedBox(height: 20),
                 if (_isRegistering)
-                  CircleAvatar(
+                  /*CircleAvatar(
                     radius: 50,
                     backgroundColor: Colors.blueGrey,
                     backgroundImage: NetworkImage(
                       _getRandomAvatar(_emailController.text),
                     ),
-                  ),
+                  ),*/
                 const SizedBox(height: 20),
                 TextFormField(
                   controller: _emailController,

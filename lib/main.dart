@@ -137,7 +137,24 @@ class MyAppState extends State<MyApp> with TickerProviderStateMixin {
       home: Builder(
         builder: (context) => Scaffold(
           appBar: AppBar(
-            title: const Text('NewzBot'),
+              title: Row(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                CircleAvatar(
+                  radius: 20,
+                  backgroundColor: Colors.transparent,
+                  child: Image.asset(
+                    isDarkTheme 
+                        ? 'lib/Icons/whitelogo.png'
+                        : 'lib/Icons/blacklogo.png',
+                    width: 40,
+                    height: 40,
+                  ),
+                ),
+                const SizedBox(width: 5),
+                const Text('NewzBot'),
+              ],
+            ),
             centerTitle: true,
             bottom: TabBar(
               controller: tabController,
