@@ -175,6 +175,8 @@ class _ChatScreenState extends State<ChatScreen> {
 
   Widget _buildMessageBubble(Map<String, String> message) {
     final isUser = message['role'] == 'user';
+    final theme = Theme.of(context);
+
     return Padding(
       padding: const EdgeInsets.symmetric(vertical: 8, horizontal: 12),
       child: Row(
@@ -191,7 +193,7 @@ class _ChatScreenState extends State<ChatScreen> {
                   'lib/Icons/bot.png',
                   width: 32,
                   height: 32,
-                  color: Theme.of(context).brightness == Brightness.dark
+                  color: theme.brightness == Brightness.dark
                       ? const Color.fromARGB(226, 222, 221, 221)
                       : const Color.fromARGB(223, 46, 46, 46),
                 ),
@@ -208,8 +210,12 @@ class _ChatScreenState extends State<ChatScreen> {
               ),
               decoration: BoxDecoration(
                 color: isUser
-                    ? Theme.of(context).primaryColor
-                    : Colors.grey[200],
+                    ? (theme.brightness == Brightness.dark
+                        ? Colors.deepPurple[400] // User bubble color in dark mode
+                        : theme.primaryColor) // User bubble color in light mode
+                    : (theme.brightness == Brightness.dark
+                        ? Colors.grey[800] // Assistant bubble color in dark mode
+                        : Colors.grey[200]), // Assistant bubble color in light mode
                 borderRadius: BorderRadius.circular(20),
                 boxShadow: [
                   BoxShadow(
@@ -222,7 +228,9 @@ class _ChatScreenState extends State<ChatScreen> {
               child: Text(
                 message['content']!,
                 style: TextStyle(
-                  color: isUser ? Colors.white : Colors.black,
+                  color: isUser
+                      ? Colors.white // User text color
+                      : (theme.brightness == Brightness.dark ? Colors.white : Colors.black), // Assistant text color
                   fontSize: 16,
                 ),
               ),
@@ -301,6 +309,8 @@ class _ChatScreenState extends State<ChatScreen> {
   }
 
   Widget _buildInputArea() {
+    final theme = Theme.of(context);
+
     return SafeArea(
       child: Padding(
         padding: const EdgeInsets.all(12.0),
@@ -314,7 +324,7 @@ class _ChatScreenState extends State<ChatScreen> {
                 decoration: InputDecoration(
                   hintText: 'Ask about current news...',
                   filled: true,
-                  fillColor: Theme.of(context).cardColor,
+                  fillColor: theme.cardColor,
                   border: OutlineInputBorder(
                     borderRadius: BorderRadius.circular(30),
                     borderSide: BorderSide.none,
@@ -328,7 +338,7 @@ class _ChatScreenState extends State<ChatScreen> {
                           padding: const EdgeInsets.all(12),
                           child: CircularProgressIndicator(
                             strokeWidth: 2,
-                            color: Theme.of(context).primaryColor,
+                            color: theme.primaryColor,
                           ),
                         )
                       : null,
@@ -339,9 +349,14 @@ class _ChatScreenState extends State<ChatScreen> {
             const SizedBox(width: 8),
             CircleAvatar(
               radius: 24,
-              backgroundColor: Theme.of(context).primaryColor,
+              backgroundColor: theme.brightness == Brightness.dark
+                  ? Colors.deepPurple[400] // Match user bubble color in dark mode
+                  : Colors.deepPurple[400], // A clean blue color for light mode
               child: IconButton(
-                icon: const Icon(Icons.send_rounded, color: Colors.white),
+                icon: Icon(
+                  Icons.send_rounded,
+                  color: Colors.white, // Keep the icon white for both modes
+                ),
                 onPressed: _sendMessageIfValid,
               ),
             ),
