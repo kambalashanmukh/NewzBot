@@ -14,7 +14,6 @@ class _ChatScreenState extends State<ChatScreen> {
   bool _isLoading = false;
   final ScrollController _scrollController = ScrollController();
 
-  // Groq Cloud Configuration
   static const String _apiKey = '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';
   static const String _apiUrl = 'https://api.groq.com/openai/v1/chat/completions';
 
@@ -34,11 +33,11 @@ class _ChatScreenState extends State<ChatScreen> {
           'Content-Type': 'application/json',
         },
         body: jsonEncode({
-          "model": "compound-beta", // Use exact model name from successful response
+          "model": "compound-beta",
           "messages": [
             {
               "role": "system",
-              "content": "you are a newzbot that provides current news updates only not other information and give summerized answers in 2-3 lines"
+              "content": "you are a newzbot that provides current news updates only not other information and give summarized answers in 2-3 lines"
             },
             {"role": "user", "content": text}
           ],
@@ -48,8 +47,6 @@ class _ChatScreenState extends State<ChatScreen> {
           "stream": false
         }),
       ).timeout(const Duration(seconds: 30));
-
-      print('API Response: ${response.body}');
 
       if (response.statusCode == 200) {
         final data = jsonDecode(response.body);
@@ -85,7 +82,6 @@ class _ChatScreenState extends State<ChatScreen> {
     }
   }
 
-
   void _scrollToBottom() {
     if (_scrollController.hasClients) {
       _scrollController.animateTo(
@@ -106,19 +102,70 @@ class _ChatScreenState extends State<ChatScreen> {
       body: Column(
         children: [
           Expanded(
-            child: ListView.builder(
-              controller: _scrollController,
-              padding: const EdgeInsets.all(8),
-              reverse: true,
-              itemCount: _messages.length + (_isLoading ? 1 : 0),
-              itemBuilder: (context, index) {
-                if (index == 0 && _isLoading) {
-                  return _buildTypingIndicator();
-                }
-                final message = _messages.reversed.toList()[index - (_isLoading ? 1 : 0)];
-                return _buildMessageBubble(message);
-              },
-            ),
+            child: _messages.isEmpty
+                ? Center(
+                    child: Padding(
+                      padding: const EdgeInsets.all(16.0),
+                      child: Card(
+                        elevation: 4,
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(16),
+                        ),
+                        child: Padding(
+                          padding: const EdgeInsets.all(24.0),
+                          child: Column(
+                            mainAxisSize: MainAxisSize.min,
+                            children: [
+                              CircleAvatar(
+                                radius: 40,
+                                backgroundColor: Colors.transparent,
+                                child: Image.asset(
+                                  'lib/Icons/bot.png',
+                                  width: 80,
+                                  height: 80,
+                                  color: Theme.of(context).brightness == Brightness.dark
+                                      ? const Color.fromARGB(226, 222, 221, 221)
+                                      : const Color.fromARGB(223, 46, 46, 46),
+                                ),
+                              ),
+                              const SizedBox(height: 16),
+                              Text(
+                                'Welcome to NewzBot!',
+                                style: TextStyle(
+                                  fontSize: 20,
+                                  fontWeight: FontWeight.bold,
+                                  color: Theme.of(context).textTheme.bodyMedium?.color,
+                                ),
+                                textAlign: TextAlign.center,
+                              ),
+                              const SizedBox(height: 8),
+                              Text(
+                                'Ask me about the latest news topics, and I\'ll provide you with quick and summarized updates.',
+                                style: TextStyle(
+                                  fontSize: 16,
+                                  color: Theme.of(context).textTheme.bodyMedium?.color,
+                                ),
+                                textAlign: TextAlign.center,
+                              ),
+                            ],
+                          ),
+                        ),
+                      ),
+                    ),
+                  )
+                : ListView.builder(
+                    controller: _scrollController,
+                    padding: const EdgeInsets.all(8),
+                    reverse: true,
+                    itemCount: _messages.length + (_isLoading ? 1 : 0),
+                    itemBuilder: (context, index) {
+                      if (index == 0 && _isLoading) {
+                        return _buildTypingIndicator();
+                      }
+                      final message = _messages.reversed.toList()[index - (_isLoading ? 1 : 0)];
+                      return _buildMessageBubble(message);
+                    },
+                  ),
           ),
           _buildInputArea(),
         ],
@@ -144,9 +191,9 @@ class _ChatScreenState extends State<ChatScreen> {
                   'lib/Icons/bot.png',
                   width: 32,
                   height: 32,
-                  color: Theme.of(context).brightness == Brightness.dark 
-                          ? const Color.fromARGB(226, 222, 221, 221) 
-                          : const Color.fromARGB(223, 46, 46, 46),
+                  color: Theme.of(context).brightness == Brightness.dark
+                      ? const Color.fromARGB(226, 222, 221, 221)
+                      : const Color.fromARGB(223, 46, 46, 46),
                 ),
               ),
             ),
@@ -201,9 +248,9 @@ class _ChatScreenState extends State<ChatScreen> {
                 'lib/Icons/bot.png',
                 width: 32,
                 height: 32,
-                color: Theme.of(context).brightness == Brightness.dark 
-                          ? const Color.fromARGB(226, 222, 221, 221) 
-                          : const Color.fromARGB(223, 46, 46, 46),
+                color: Theme.of(context).brightness == Brightness.dark
+                    ? const Color.fromARGB(226, 222, 221, 221)
+                    : const Color.fromARGB(223, 46, 46, 46),
               ),
             ),
           ),
