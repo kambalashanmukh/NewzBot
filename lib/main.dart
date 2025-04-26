@@ -1,30 +1,32 @@
+//importing all the necessary packages.
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:hive_flutter/hive_flutter.dart';
 import 'package:http/http.dart' as http;
-import 'dart:convert';
 import 'package:intl/intl.dart';
-import 'package:webview_flutter/webview_flutter.dart';
-import 'package:webview_flutter_android/webview_flutter_android.dart';
-import 'chat_screen.dart';
-import 'market_page.dart';
-import 'package:firebase_core/firebase_core.dart';
-import 'firebase_options.dart';
-import 'package:firebase_auth/firebase_auth.dart';
 import 'package:provider/provider.dart';
-import 'auth_service.dart';
-import 'login_screen.dart';
-import 'downloads_page.dart';
+import 'package:webview_flutter/webview_flutter.dart';
+import 'dart:convert';
+import 'package:webview_flutter_android/webview_flutter_android.dart';
+import 'package:firebase_core/firebase_core.dart';
+import 'package:firebase_auth/firebase_auth.dart';
 
+//importing all the dart files.
+import 'firebase_options.dart';
+import 'auth_service.dart';
+import 'chat_screen.dart';
+import 'downloads_page.dart';
+import 'login_screen.dart';
+import 'market_page.dart';
+
+// Main entry point
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
-  await Firebase.initializeApp(
-    options: DefaultFirebaseOptions.currentPlatform,
-  );
+  await Firebase.initializeApp(options: DefaultFirebaseOptions.currentPlatform);
   await Hive.initFlutter();
   Hive.registerAdapter(MarketDataAdapter());
   await Hive.openBox<MarketData>('marketData');
-  
+
   runApp(
     MultiProvider(
       providers: [
@@ -60,8 +62,8 @@ class MyAppState extends State<MyApp> with TickerProviderStateMixin {
   @override
   void initState() {
     super.initState();
-    tabController = TabController(length: categories.length, vsync: this);
-    tabController.addListener(_handleTabSelection);
+    tabController = TabController(length: categories.length, vsync: this)
+      ..addListener(_handleTabSelection);
     _loadInitialData();
   }
 
@@ -89,140 +91,53 @@ class MyAppState extends State<MyApp> with TickerProviderStateMixin {
   }
 
   Future<List<Article>> fetchArticles(String category) async {
-    String apiCategory = category == 'For You' 
-        ? 'general' 
-        : category == 'Science' 
-            ? 'science' 
-            : category.toLowerCase();
-    
+    final apiCategory = category == 'For You' ? 'general' : category.toLowerCase();
     final response = await http.get(Uri.parse(
-      'https://newsapi.org/v2/top-headlines?country=us&category=$apiCategory&apiKey=$apiKey'
+      'https://newsapi.org/v2/top-headlines?country=us&category=$apiCategory&apiKey=$apiKey',
     ));
 
     if (response.statusCode == 200) {
-      List<Article> articles = [];
-      var jsonData = jsonDecode(response.body);
-      for (var item in jsonData['articles']) {
-        if (item['title'] != null && item['description'] != null) {
-          articles.add(Article(
-            title: item['title'],
-            description: item['description'],
-            content: item['content'] ?? 'No content available',
-            urlToImage: item['urlToImage'] ?? '',
-            publishedAt: DateTime.parse(item['publishedAt']),
-            author: item['author'] ?? 'Unknown',
-            source: item['source']['name'] ?? 'Unknown source',
-            url: item['url'] ?? '',
-          ));
-        }
-      }
-      return articles;
+      final jsonData = jsonDecode(response.body);
+      return (jsonData['articles'] as List)
+          .where((item) => item['title'] != null && item['description'] != null)
+          .map((item) => Article(
+                title: item['title'],
+                description: item['description'],
+                content: item['content'] ?? 'No content available',
+                urlToImage: item['urlToImage'] ?? '',
+                publishedAt: DateTime.parse(item['publishedAt']),
+                author: item['author'] ?? 'Unknown',
+                source: item['source']['name'] ?? 'Unknown source',
+                url: item['url'] ?? '',
+              ))
+          .toList();
     }
     return [];
   }
 
-    List<Article> _filterArticles(List<Article> articles) {
-      if (searchQuery.isEmpty) {
-        return articles;
-      }
-      final query = searchQuery.toLowerCase();
-      return articles.where((article) {
-        return article.title.toLowerCase().contains(query) ||
-            article.description.toLowerCase().contains(query) ||
-            article.content.toLowerCase().contains(query) ||
-            article.source.toLowerCase().contains(query);
-      }).toList();
-    }
+  List<Article> _filterArticles(List<Article> articles) {
+    if (searchQuery.isEmpty) return articles;
+    final query = searchQuery.toLowerCase();
+    return articles.where((article) {
+      return article.title.toLowerCase().contains(query) ||
+          article.description.toLowerCase().contains(query) ||
+          article.content.toLowerCase().contains(query) ||
+          article.source.toLowerCase().contains(query);
+    }).toList();
+  }
+
   @override
   Widget build(BuildContext context) {
     return MaterialApp(
       theme: isDarkTheme ? ThemeData.dark() : ThemeData.light(),
       home: Builder(
         builder: (context) => Scaffold(
-              appBar: AppBar(
-                title: _isSearching
-                    ? TextField(
-                        controller: searchController,
-                        autofocus: true,
-                        decoration: const InputDecoration(
-                          hintText: 'Search articles...',
-                          border: InputBorder.none,
-                        ),
-                        style: TextStyle(
-                          color: isDarkTheme ? Colors.white : Colors.black,
-                        ),
-                        onChanged: (value) {
-                          setState(() {
-                            searchQuery = value;
-                          });
-                        },
-                        onSubmitted: (value) {
-                          setState(() {
-                            searchQuery = value;
-                            _isSearching = false;
-                          });
-                        },
-                      )
-                    : Row(
-                        mainAxisSize: MainAxisSize.min,
-                        children: [
-                          CircleAvatar(
-                            radius: 20,
-                            backgroundColor: Colors.transparent,
-                            child: Image.asset(
-                              isDarkTheme 
-                                  ? 'lib/Icons/whitelogo.png'
-                                  : 'lib/Icons/blacklogo.png',
-                              width: 40,
-                              height: 40,
-                            ),
-                          ),
-                          const SizedBox(width: 5),
-                          const Text('NewzBot'),
-                        ],
-                      ),
-                centerTitle: true,
-                bottom: TabBar(
-                  controller: tabController,
-                  isScrollable: true,
-                  tabs: categories.map((category) => Tab(text: category)).toList(),
-                ),
-                actions: [
-                  IconButton(
-                    icon: Icon(_isSearching ? Icons.close : Icons.search),
-                    onPressed: () {
-                      setState(() {
-                        if (_isSearching) {
-                          _isSearching = false;
-                          searchQuery = '';
-                          searchController.clear();
-                        } else {
-                          _isSearching = true;
-                        }
-                      });
-                    },
-                  ),
-                  IconButton(
-                    icon: Image.asset('lib/Icons/bot.png', 
-                      width: 25, 
-                      height: 25, 
-                      color: isDarkTheme 
-                          ? const Color.fromARGB(226, 222, 221, 221) 
-                          : const Color.fromARGB(223, 46, 46, 46)),
-                    onPressed: () async {
-                      Navigator.push(
-                        context,
-                        MaterialPageRoute(builder: (context) => const ChatScreen()),
-                      );
-                    },
-                  )
-                ],
-              ),
-                        drawer: buildDrawer(context),
+          appBar: _buildAppBar(context),
+          drawer: _buildDrawer(context),
           body: TabBarView(
             controller: tabController,
-            children: categories.map((category) => 
-              FutureBuilder<List<Article>>(
+            children: categories.map((category) {
+              return FutureBuilder<List<Article>>(
                 future: categoryFutures[category],
                 builder: (context, snapshot) {
                   if (snapshot.connectionState == ConnectionState.waiting) {
@@ -239,28 +154,97 @@ class MyAppState extends State<MyApp> with TickerProviderStateMixin {
                       final article = filteredArticles[index];
                       return NewsCard(
                         article: article,
-                        onTap: () {
-                          Navigator.push(
-                            context,
-                            MaterialPageRoute(
-                              builder: (context) => ArticleDetailPage(article: article),
-                          ));
-                        },
+                        onTap: () => Navigator.push(
+                          context,
+                          MaterialPageRoute(
+                            builder: (context) => ArticleDetailPage(article: article),
+                          ),
+                        ),
                       );
                     },
                   );
                 },
-              ),
-            ).toList(),
+              );
+            }).toList(),
           ),
         ),
       ),
     );
   }
 
-  Widget buildDrawer(BuildContext context) {
+  AppBar _buildAppBar(BuildContext context) {
+    return AppBar(
+      title: _isSearching
+          ? TextField(
+              controller: searchController,
+              autofocus: true,
+              decoration: const InputDecoration(
+                hintText: 'Search articles...',
+                border: InputBorder.none,
+              ),
+              style: TextStyle(color: isDarkTheme ? Colors.white : Colors.black),
+              onChanged: (value) => setState(() => searchQuery = value),
+              onSubmitted: (value) => setState(() {
+                searchQuery = value;
+                _isSearching = false;
+              }),
+            )
+          : Row(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                CircleAvatar(
+                  radius: 20,
+                  backgroundColor: Colors.transparent,
+                  child: Image.asset(
+                    isDarkTheme ? 'lib/Icons/whitelogo.png' : 'lib/Icons/blacklogo.png',
+                    width: 40,
+                    height: 40,
+                  ),
+                ),
+                const SizedBox(width: 5),
+                const Text('NewzBot'),
+              ],
+            ),
+      centerTitle: true,
+      bottom: TabBar(
+        controller: tabController,
+        isScrollable: true,
+        tabs: categories.map((category) => Tab(text: category)).toList(),
+      ),
+      actions: [
+        IconButton(
+          icon: Icon(_isSearching ? Icons.close : Icons.search),
+          onPressed: () => setState(() {
+            if (_isSearching) {
+              _isSearching = false;
+              searchQuery = '';
+              searchController.clear();
+            } else {
+              _isSearching = true;
+            }
+          }),
+        ),
+        IconButton(
+          icon: Image.asset(
+            'lib/Icons/bot.png',
+            width: 25,
+            height: 25,
+            color: isDarkTheme
+                ? const Color.fromARGB(226, 222, 221, 221)
+                : const Color.fromARGB(223, 46, 46, 46),
+          ),
+          onPressed: () => Navigator.push(
+            context,
+            MaterialPageRoute(builder: (context) => const ChatScreen()),
+          ),
+        ),
+      ],
+    );
+  }
+
+  Widget _buildDrawer(BuildContext context) {
     final user = Provider.of<User?>(context);
-    final avatarUrl = user != null 
+    final avatarUrl = user != null
         ? 'https://api.dicebear.com/7.x/personas/png?seed=${Uri.encodeComponent(user.uid)}'
         : '';
 
@@ -273,7 +257,7 @@ class MyAppState extends State<MyApp> with TickerProviderStateMixin {
               user?.displayName ?? user?.email ?? 'Guest User',
               style: const TextStyle(fontSize: 18),
             ),
-            accountEmail: user != null 
+            accountEmail: user != null
                 ? Text(user.email!)
                 : const Text('Not logged in'),
             currentAccountPicture: CircleAvatar(
@@ -284,13 +268,11 @@ class MyAppState extends State<MyApp> with TickerProviderStateMixin {
                   fit: BoxFit.cover,
                   width: 100,
                   height: 100,
-                  errorBuilder: (context, error, stackTrace) {
-                    return Icon(
-                      Icons.person,
-                      size: 48,
-                      color: isDarkTheme ? Colors.white : Colors.blue[800],
-                    );
-                  },
+                  errorBuilder: (context, error, stackTrace) => Icon(
+                    Icons.person,
+                    size: 48,
+                    color: isDarkTheme ? Colors.white : Colors.blue[800],
+                  ),
                   loadingBuilder: (context, child, loadingProgress) {
                     if (loadingProgress == null) return child;
                     return CircularProgressIndicator(
@@ -324,79 +306,80 @@ class MyAppState extends State<MyApp> with TickerProviderStateMixin {
               onTap: () async {
                 final shouldLogout = await showDialog<bool>(
                   context: context,
-                  builder: (context) {
-                    return AlertDialog(
-                      title: const Text('Confirm Logout'),
-                      content: const Text('Are you sure you want to log out?'),
-                      actions: [
-                        TextButton(
-                          onPressed: () => Navigator.of(context).pop(false), // Cancel
-                          child: const Text('No'),
-                        ),
-                        TextButton(
-                          onPressed: () => Navigator.of(context).pop(true), // Confirm
-                          child: const Text('Yes'),
-                        ),
-                      ],
-                    );
-                  },
+                  builder: (context) => AlertDialog(
+                    title: const Text('Confirm Logout'),
+                    content: const Text('Are you sure you want to log out?'),
+                    actions: [
+                      TextButton(
+                        onPressed: () => Navigator.of(context).pop(false),
+                        child: const Text('No'),
+                      ),
+                      TextButton(
+                        onPressed: () => Navigator.of(context).pop(true),
+                        child: const Text('Yes'),
+                      ),
+                    ],
+                  ),
                 );
 
                 if (shouldLogout == true) {
                   await Provider.of<AuthService>(context, listen: false).signOut();
-                  Navigator.pop(context); // Close the drawer
+                  Navigator.pop(context);
                 }
               },
             ),
-          ListTile(
-            leading: const Icon(Icons.newspaper),
-            title: const Text('News'),
-            onTap: () => Navigator.pop(context),
-          ),
-          ListTile(
-            leading: const Icon(Icons.stacked_line_chart_outlined),
-            title: const Text('Market'),
-            onTap: () {
-              Navigator.pop(context);
-              Navigator.push(
-                context,
-                MaterialPageRoute(builder: (context) => const MarketPage()),
-              );
-            },
-          ),
-          ListTile(
-            leading: const Icon(Icons.download),
-            title: const Text('Downloads'),
-            onTap: () {
-              Navigator.pop(context); // Close the drawer
-              Navigator.push(
-                context,
-                MaterialPageRoute(builder: (context) => DownloadsPage()), // Navigate to DownloadsPage
-              );
-            },
-          ),
-          ListTile(
-            leading: const Icon(Icons.brightness_medium),
-            title: const Text('App Theme'),
-            trailing: _ThemeSwitch(
-              value: isDarkTheme,
-              onChanged: (value) {
-                setState(() {
-                  isDarkTheme = value;
-                });
-              },
-            ),
-          ),
-          ListTile(
-            leading: const Icon(Icons.exit_to_app),
-            title: const Text('Exit'),
-            onTap: () => SystemNavigator.pop(),
-          ),
+          ..._buildDrawerOptions(context),
         ],
       ),
     );
   }
+
+  List<Widget> _buildDrawerOptions(BuildContext context) {
+    return [
+      ListTile(
+        leading: const Icon(Icons.newspaper),
+        title: const Text('News'),
+        onTap: () => Navigator.pop(context),
+      ),
+      ListTile(
+        leading: const Icon(Icons.stacked_line_chart_outlined),
+        title: const Text('Market'),
+        onTap: () {
+          Navigator.pop(context);
+          Navigator.push(
+            context,
+            MaterialPageRoute(builder: (context) => const MarketPage()),
+          );
+        },
+      ),
+      ListTile(
+        leading: const Icon(Icons.download),
+        title: const Text('Downloads'),
+        onTap: () {
+          Navigator.pop(context);
+          Navigator.push(
+            context,
+            MaterialPageRoute(builder: (context) => DownloadsPage()),
+          );
+        },
+      ),
+      ListTile(
+        leading: const Icon(Icons.brightness_medium),
+        title: const Text('App Theme'),
+        trailing: _ThemeSwitch(
+          value: isDarkTheme,
+          onChanged: (value) => setState(() => isDarkTheme = value),
+        ),
+      ),
+      ListTile(
+        leading: const Icon(Icons.exit_to_app),
+        title: const Text('Exit'),
+        onTap: () => SystemNavigator.pop(),
+      ),
+    ];
+  }
 }
+
 class Article {
   final String title;
   final String description;

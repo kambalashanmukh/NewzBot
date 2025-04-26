@@ -5,6 +5,7 @@ import 'package:http/http.dart' as http;
 import 'dart:convert';
 import 'package:fl_chart/fl_chart.dart';
 import 'package:intl/intl.dart';
+import 'dart:developer';
 
 @HiveType(typeId: 0)
 class MarketData extends HiveObject {
@@ -126,14 +127,14 @@ class _MarketPageState extends State<MarketPage> with SingleTickerProviderStateM
       },
     );
 
-    print('API Response for $symbol: ${response.body}'); // Debug log
+    log('API Response for $symbol: ${response.body}'); // Debug log
 
     if (response.statusCode == 200) {
       final jsonData = jsonDecode(response.body);
       final items = (jsonData['items'] as List<dynamic>?) ?? [];
 
       if (items.isEmpty) {
-        print('No historical data for $symbol');
+        log('No historical data for $symbol');
         return;
       }
 
@@ -169,13 +170,13 @@ class _MarketPageState extends State<MarketPage> with SingleTickerProviderStateM
           ),
         );
       } else {
-        print('Insufficient data points for $symbol');
+        log('Insufficient data points for $symbol');
       }
     } else {
-      print('API Error: ${response.statusCode} - ${response.body}');
+      log('API Error: ${response.statusCode} - ${response.body}');
     }
   } catch (e) {
-    print('Error fetching stock data: $e');
+    log('Error fetching stock data: $e');
   }
 }
   Future<void> _fetchCryptoData(String id) async {
@@ -207,7 +208,7 @@ class _MarketPageState extends State<MarketPage> with SingleTickerProviderStateM
         }
       }
     } catch (e) {
-      print('Error fetching crypto data: $e');
+      log('Error fetching crypto data: $e');
     }
   }
 
@@ -258,7 +259,7 @@ class _MarketPageState extends State<MarketPage> with SingleTickerProviderStateM
         }
       }
     } catch (e) {
-      print('Error fetching forex data: $e');
+      log('Error fetching forex data: $e');
     }
   }
 
