@@ -54,7 +54,7 @@ class MyAppState extends State<MyApp> with TickerProviderStateMixin {
   final List<String> categories = [
     'For You', 'Sports', 'Entertainment', 'Business', 'Technology', 'Health', 'Science'
   ];
-  final String apiKey = 'b21b107a4bb0432497f5586be3a482ce';
+  final String apiKey = 'your_news_api_key_here'; // Replace with your actual API key
   final Map<String, Future<List<Article>>> categoryFutures = {};
   final TextEditingController searchController = TextEditingController();
   String searchQuery = '';
@@ -779,7 +779,7 @@ class _ThemeSwitch extends StatelessWidget {
 
 class SummaryService {
   static Future<String?> fetchSummary(String articleUrl) async {
-    const apiKey = 'ef87df33cbmsh310a583bffffb57p1cb9d7jsn4f235f7908af';
+    const apiKey = 'your_rapidapi_key_here'; // Replace with your actual API key
     const apiHost = 'article-extractor-and-summarizer.p.rapidapi.com';
 
     try {

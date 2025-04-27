@@ -111,7 +111,7 @@ class _MarketPageState extends State<MarketPage> with SingleTickerProviderStateM
   }
 
  Future<void> _fetchStockData(String symbol) async {
-  const apiKey = 'ef87df33cbmsh310a583bffffb57p1cb9d7jsn4f235f7908af';
+  const apiKey = 'your_rapidapi_key';
   const apiHost = 'yahoo-finance15.p.rapidapi.com';
 
   try {
@@ -213,7 +213,8 @@ class _MarketPageState extends State<MarketPage> with SingleTickerProviderStateM
   }
 
   Future<void> _fetchForexData(String pair) async {
-    const apiKey = 'ef87df33cbmsh310a583bffffb57p1cb9d7jsn4f235f7908af';
+    const apiKey = 'your_rapidapi_key';
+    // Replace with your actual API key
     const apiHost = 'alpha-vantage.p.rapidapi.com';
 
     try {

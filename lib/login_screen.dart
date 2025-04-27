@@ -59,13 +59,6 @@ class _LoginScreenState extends State<LoginScreen> {
                 ),
                 const SizedBox(height: 20),
                 if (_isRegistering)
-                  /*CircleAvatar(
-                    radius: 50,
-                    backgroundColor: Colors.blueGrey,
-                    backgroundImage: NetworkImage(
-                      _getRandomAvatar(_emailController.text),
-                    ),
-                  ),*/
                 const SizedBox(height: 20),
                 TextFormField(
                   controller: _emailController,

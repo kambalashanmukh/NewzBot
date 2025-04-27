@@ -14,7 +14,7 @@ class _ChatScreenState extends State<ChatScreen> {
   bool _isLoading = false;
   final ScrollController _scrollController = ScrollController();
 
-  static const String _apiKey = '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';
+  static const String _apiKey = 'YOUR_GROQ_API_KEY'; // Replace with your actual
   static const String _apiUrl = 'https://api.groq.com/openai/v1/chat/completions';
 
   Future<void> sendMessage(String text) async {
