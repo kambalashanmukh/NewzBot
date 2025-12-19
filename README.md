@@ -10,21 +10,21 @@ It provides real-time news updates, AI-powered chat summaries, and financial mar
 
 ## Features
 
-- 🔐 **Firebase Authentication**  
+- **Firebase Authentication**  
   Email/Password & Google Sign-In
-- 📰 **Multi-Category News**  
+- **Multi-Category News**  
   Browse 7+ categories with images and summaries
-- 🤖 **AI News Chat Bot**  
+- **AI News Chat Bot**  
   Get 2-3 line summarized news updates via chat interface
-- 📈 **Market Tracking**  
+- **Market Tracking**  
   Real-time stocks, crypto, and forex data with interactive charts
-- 🌓 **Theme Switching**  
+- **Theme Switching**  
   Light/Dark mode support
-- 📥 **Offline Caching**  
+- **Offline Caching**  
   Hive-based local caching for news and market data
-- 🌐 **WebView Articles**  
+- **WebView Articles**  
   Full article reading within app
-- 🔍 **Smart Search**  
+- **Smart Search**  
   Search across news titles, content, and sources
 
 ## Getting Started
